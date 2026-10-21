@@ -41,6 +41,33 @@ export default {
       return deny || json({ ok: true });
     }
 
+    // Envio atômico: grava o pedido e tira os itens da central numa só operação
+    if (url.pathname === "/api/enviar" && request.method === "POST") {
+      const body = await request.json().catch(() => null);
+      const envio = body && body.envio;
+      const ids = Array.isArray(body && body.ids) ? body.ids.filter((x) => typeof x === "string").slice(0, 500) : [];
+      if (!envio || typeof envio !== "object" || typeof envio.numero !== "string" || !/^[A-Za-z0-9_.:@+~-]{1,120}$/.test(envio.numero))
+        return json({ error: "envio inválido" }, 400);
+      const exists = await env.DB.prepare("SELECT 1 FROM docs WHERE coll = 'envios' AND id = ?").bind(envio.numero).first();
+      if (exists) return json({ error: "envio já existe" }, 409);
+      const txt = JSON.stringify(envio);
+      if (txt.length > 500_000) return json({ error: "envio grande demais" }, 400);
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO docs (coll, id, data, updated_at) VALUES ('envios', ?, ?, ?)").bind(envio.numero, txt, Date.now()),
+        ...ids.map((id) => env.DB.prepare("DELETE FROM docs WHERE coll = 'coleta' AND id = ?").bind(id)),
+      ]);
+      return json({ ok: true });
+    }
+
+    // Remove vários itens da central de uma vez
+    if (url.pathname === "/api/coleta/remover" && request.method === "POST") {
+      const body = await request.json().catch(() => null);
+      const ids = Array.isArray(body && body.ids) ? body.ids.filter((x) => typeof x === "string").slice(0, 500) : [];
+      if (!ids.length) return json({ error: "nenhum item" }, 400);
+      await env.DB.batch(ids.map((id) => env.DB.prepare("DELETE FROM docs WHERE coll = 'coleta' AND id = ?").bind(id)));
+      return json({ ok: true });
+    }
+
     const m = url.pathname.match(/^\/api\/([a-z]+)(?:\/([A-Za-z0-9_.:@+~-]{1,120}))?$/);
     if (!m) {
       if (url.pathname.startsWith("/api/")) return json({ error: "rota inválida" }, 404);
