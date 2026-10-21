@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.45 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>CPM Peso de Materiais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: bancada de oficina — seletor de perfil no topo, entradas à esquerda, desenho cotado + resultado à direita */
+:root{
+  --bg:#eef1f3; --panel:#ffffff; --ink:#1b252c; --muted:#5f6d77; --line:#d3dade;
+  --accent:#0f8f8a; --accent-ink:#ffffff; --steel:#3fbfba; --steel-fill:#bfe9e6;
+  --f-display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --f-body:"Barlow",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141a1e; --panel:#1d252a; --ink:#e4eaed; --muted:#93a1aa; --line:#2f3a41;
+  --accent:#3cc7c0; --accent-ink:#0d1517; --steel:#3cc7c0; --steel-fill:#1f4a49; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a1e; --panel:#1d252a; --ink:#e4eaed; --muted:#93a1aa; --line:#2f3a41;
+  --accent:#3cc7c0; --accent-ink:#0d1517; --steel:#3cc7c0; --steel-fill:#1f4a49; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:20px}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.tag{font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.12em;color:var(--accent-ink);background:var(--accent);padding:2px 9px;border-radius:3px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,5vw,38px);margin:0;letter-spacing:.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:0;flex-basis:100%}
+
+.shapes{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:620px){.shapes{grid-template-columns:repeat(2,1fr)}}
+.shape{appearance:none;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;
+  padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font:inherit;font-weight:600}
+.shape svg{width:46px;height:46px}
+.shape:hover{border-color:var(--steel)}
+.shape[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.shape:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px}
+@media (max-width:760px){.bench{grid-template-columns:1fr}}
+.inputs{display:flex;flex-direction:column;gap:14px;min-width:0}
+label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.03em}
+label .k{font-family:var(--f-mono);color:var(--ink);font-weight:600}
+.field{display:flex;align-items:stretch;border:1.5px solid var(--line);border-radius:6px;background:var(--bg);overflow:hidden}
+.field input,select{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font-family:var(--f-mono);font-size:17px;padding:9px 10px;font-variant-numeric:tabular-nums}
+select{border:1.5px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--f-body);font-size:16px}
+.unit{font-family:var(--f-mono);font-size:13px;color:var(--muted);padding:0 10px;display:flex;align-items:center;border-left:1px solid var(--line)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.err{color:#c4452f;font-size:13px;min-height:1em;margin:0}
+
+.out{display:flex;flex-direction:column;gap:14px;min-width:0}
+.drawing{border:1px dashed var(--line);border-radius:8px;display:flex;justify-content:center;padding:10px}
+.drawing svg{width:100%;max-width:340px;height:auto}
+.drawing text{font-family:var(--f-mono);font-size:13px;fill:var(--ink)}
+.result{background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:2px}
+.result small{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;font-weight:600}
+.big{font-family:var(--f-display);font-weight:700;font-size:clamp(40px,8vw,56px);line-height:1;font-variant-numeric:tabular-nums}
+.big span{font-size:.45em;margin-left:6px}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:13px}
+.meta div{display:flex;flex-direction:column;border-top:1px solid var(--line);padding-top:6px}
+.meta b{font-family:var(--f-mono);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.meta span{color:var(--muted)}
+.formula{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);background:var(--bg);border-radius:6px;padding:8px 10px;overflow-x:auto;white-space:nowrap}
+
+.mats{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.mats h2{font-family:var(--f-display);font-size:20px;margin:0 0 8px;letter-spacing:.02em}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+td.n{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+tr.sel td{background:var(--steel-fill)}
+
+.catalog{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px;align-items:end}
+@media (max-width:620px){.catalog{grid-template-columns:1fr}}
+.catalog h2,.mats h2{font-family:var(--f-display);font-size:20px;margin:0;letter-spacing:.02em;grid-column:1/-1}
+.catalog select{font-size:15px}
+.chip{grid-column:1/-1;font-size:13px;color:var(--muted);margin:0}
+.chip b{font-family:var(--f-mono);color:var(--accent)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0 8px}
+.toolbar .field{flex:1;min-width:0;max-width:340px}
+.toolbar input{font-size:15px}
+tr.grp td{font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.04em;background:var(--bg);color:var(--muted);border-bottom:1px solid var(--line)}
+#ctbody tr:not(.grp){cursor:pointer}
+#ctbody tr:not(.grp):hover td{background:var(--bg)}
+td.code{font-family:var(--f-mono);font-size:13px}
+.note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+
+.tabs{display:flex;gap:6px;flex-basis:100%;margin-top:6px;flex-wrap:wrap}
+.tab{appearance:none;font:inherit;font-weight:600;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.count{font-family:var(--f-mono);font-size:12px;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:1px 7px;min-width:22px;text-align:center}
+.btn{appearance:none;font:inherit;font-weight:600;border-radius:6px;padding:11px 16px;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{background:#c4452f;border-color:#c4452f;color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.tab:focus-visible,.x:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.add{width:100%;font-size:16px;display:flex;justify-content:center;gap:8px}
+.view{display:flex;flex-direction:column;gap:20px}
+.central{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.central h2{font-family:var(--f-display);font-size:22px;margin:0}
+.central .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.status{font-size:13px;color:var(--muted);margin:0}
+.x{appearance:none;border:0;background:transparent;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 8px;border-radius:4px}
+.x:hover{color:#c4452f;background:var(--bg)}
+tfoot td{font-weight:600;border-bottom:0}
+tr.new td{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:var(--steel-fill)}to{background:transparent}}
+textarea{width:100%;min-height:64px;border:1.5px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;padding:8px 10px;resize:vertical}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.confirm{border:1.5px solid var(--accent);border-radius:8px;padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bg)}
+.confirm p{margin:0;flex:1;min-width:200px}
+.empty{color:var(--muted);text-align:center;padding:22px 10px;border:1px dashed var(--line);border-radius:8px;margin:0}
+.envio{border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+.envio summary{cursor:pointer;display:flex;gap:12px;flex-wrap:wrap;align-items:baseline;list-style:none}
+.envio summary::-webkit-details-marker{display:none}
+.envio summary b{font-family:var(--f-mono)}
+.envio summary span{color:var(--muted);font-size:13px}
+.envio .tbl{margin-top:8px}
+.envio .acts{margin-top:10px}
+.envio .obs{font-size:13px;color:var(--muted);margin:8px 0 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){tr.new td{animation:none}}
+@media (prefers-reduced-motion:no-preference){.big{transition:opacity .15s}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <span class="tag">CPM</span>
+    <h1>Cálculo de Peso de Materiais</h1>
+    <p class="sub">Escolha o perfil, o material e as medidas em milímetros. O peso é recalculado na hora.</p>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tabCalc" aria-selected="true" data-v="calc">Calculadora</button>
+      <button class="tab" role="tab" id="tabCentral" aria-selected="false" data-v="central">Central de coleta <span class="count" id="count">0</span></button>
+    </nav>
+  </header>
+
+  <div class="view" id="viewCalc">
+
+  <section class="catalog" aria-label="Item do catálogo">
+    <h2>Item do catálogo</h2>
+    <label for="tipo">1. Tipo de aço
+      <select id="tipo"></select>
+    </label>
+    <label for="item">2. Material (bitola)
+      <select id="item" disabled></select>
+    </label>
+    <p class="chip" id="chip">Medida livre: escolha o perfil e as medidas abaixo.</p>
+  </section>
+
+  <div class="shapes" role="group" aria-label="Perfil">
+    <button class="shape" data-s="chata" aria-pressed="true">
+      <svg viewBox="0 0 48 48"><rect x="6" y="14" width="36" height="20" fill="var(--steel-fill)" stroke="var(--steel)" stroke-width="2.5"/></svg>Barra chata
+    </button>
+    <button class="shape" data-s="tuboRet" aria-pressed="false">
+      <svg viewBox="0 0 48 48"><rect x="6" y="10" width="36" height="28" fill="var(--steel-fill)" stroke="var(--steel)" stroke-width="2.5"/><rect x="13" y="17" width="22" height="14" fill="var(--panel)" stroke="var(--steel)" stroke-width="2"/></svg>Tubo retangular
+    </button>
+    <button class="shape" data-s="redonda" aria-pressed="false">
+      <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17" fill="var(--steel-fill)" stroke="var(--steel)" stroke-width="2.5"/></svg>Barra redonda
+    </button>
+    <button class="shape" data-s="tuboRed" aria-pressed="false">
+      <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17" fill="var(--steel-fill)" stroke="var(--steel)" stroke-width="2.5"/><circle cx="24" cy="24" r="9" fill="var(--panel)" stroke="var(--steel)" stroke-width="2"/></svg>Tubo redondo
+    </button>
+  </div>
+
+  <section class="bench">
+    <div class="inputs">
+      <label for="mat">Material
+        <select id="mat"></select>
+      </label>
+      <div id="fields" style="display:flex;flex-direction:column;gap:14px"></div>
+      <label for="qtd">Quantidade de peças
+        <div class="field"><input id="qtd" type="number" min="1" step="1" value="1" inputmode="numeric"><span class="unit">pç</span></div>
+      </label>
+      <button class="btn add" id="btnAdd">＋ Adicionar à central de coleta</button>
+      <p class="err" id="err"></p>
+    </div>
+
+    <div class="out">
+      <div class="drawing" id="drawing"></div>
+      <div class="result">
+        <small id="resLabel">Peso total</small>
+        <div class="big" id="peso">0<span>kg</span></div>
+      </div>
+      <div class="meta">
+        <div><span>Por peça</span><b id="porPeca">–</b></div>
+        <div><span>Kg por metro</span><b id="kgm">–</b></div>
+        <div><span>Densidade</span><b id="dens">–</b></div>
+      </div>
+      <div class="formula" id="formula"></div>
+    </div>
+  </section>
+
+  <section class="mats">
+    <h2>Peso específico dos materiais</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Nº</th><th>Material</th><th style="text-align:right">kg/m³</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <p class="note">Os aços SAE e AISI do catálogo usam o material 4 · Aço / Ferro.</p>
+  </section>
+
+  <section class="mats">
+    <h2>Catálogo de barras redondas</h2>
+    <div class="toolbar">
+      <div class="field"><input id="filtro" type="search" placeholder="Filtrar por código, material ou Ø" autocomplete="off"></div>
+      <label for="compr" style="flex-direction:row;align-items:center;gap:8px">Peso para
+        <div class="field" style="width:130px"><input id="compr" type="number" min="1" step="any" value="1000"><span class="unit">mm</span></div>
+      </label>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Código</th><th>Descrição</th><th style="text-align:right">Ø mm</th><th style="text-align:right">kg/m</th><th style="text-align:right" id="thCompr">kg</th></tr></thead>
+      <tbody id="ctbody"></tbody>
+    </table></div>
+  </section>
+  </div>
+
+  <div class="view" id="viewCentral" hidden>
+    <section class="central">
+      <div class="head">
+        <h2>Central de coleta</h2>
+        <p class="status" id="syncStatus">Conectando…</p>
+      </div>
+      <div id="pendentes"></div>
+      <label for="nome">Seu nome (aparece no histórico)
+        <div class="field"><input id="nome" type="text" autocomplete="name" placeholder="Ex.: João · Manutenção" style="font-family:var(--f-body)"></div>
+      </label>
+      <label for="obs">Observação do envio
+        <textarea id="obs" placeholder="Ex.: pedido para a manutenção, entrega até sexta"></textarea>
+      </label>
+      <div class="actions">
+        <button class="btn" id="btnEnviar">Enviar e gerar Excel</button>
+        <button class="btn ghost" id="btnCopiar">Copiar resumo</button>
+        <button class="btn ghost" id="btnVoltar">Adicionar outro item</button>
+      </div>
+      <div class="confirm" id="confirmBox" hidden>
+        <p id="confirmMsg"></p>
+        <button class="btn" id="btnConfirmar">Confirmar e baixar Excel</button>
+        <button class="btn ghost" id="btnCancelar">Cancelar</button>
+      </div>
+    </section>
+    <section class="central">
+      <h2>Envios realizados</h2>
+      <div id="historico"></div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+const MATS=[["Alumínio",2700],["Bronze",8800],["Cobre",8900],["Aço / Ferro",7850],["Latão",8500],["Celeron",1400],["Nylon",1140],["Fenolite",1350]];
+const ACO=3; const M={a4140:ACO,a1040:ACO,i304:ACO,i316:ACO,i420:ACO}; // aços SAE e AISI = 4 · Aço / Ferro
+
+// [código, descrição, Ø mm, material]
+const GROUPS=[
+ ["Aço 4140",M.a4140,[["10014609","BARRA RED SAE 4140 Ø 19,05mm BENEF",19.05],["10014636","BARRA RED SAE 4140 Ø 22,23mm BENEF",22.23],["10032376","BARRA RED SAE 4140 Ø 25,40mm BENEF",25.40],["10014637","BARRA RED SAE 4140 Ø 31,75mm BENEF",31.75],["10032360","BARRA RED SAE 4140 Ø 38,10mm BENEF",38.10]]],
+ ["Aço Inox 420",M.i420,[["10155716","BARRA RED AISI 420 Ø 19,05mm",19.05],["10155717","BARRA RED AISI 420 Ø 22,23mm",22.23],["10155718","BARRA RED AISI 420 Ø 25,40mm",25.40],["10155723","BARRA RED AISI 420 Ø 31,75mm",31.75],["10166300","BARRA RED AISI 420 Ø 38,10mm",38.10]]],
+ ["Aço Inox 316",M.i316,[["10166305","BARRA RED AISI 316 Ø 19,05mm",19.05],["10166306","BARRA RED AISI 316 Ø 22,23mm",22.23],["10166314","BARRA RED AISI 316 Ø 25,40mm",25.40],["10166296","BARRA RED AISI 316 Ø 31,75mm",31.75],["10166302","BARRA RED AISI 316 Ø 38,10mm",38.10]]],
+ ["Aço Inox 304",M.i304,[["10166324","BARRA RED AISI 304 Ø 19,05mm",19.05],["10166323","BARRA RED AISI 304 Ø 22,23mm",22.23],["10155726","BARRA RED AISI 304 Ø 25,40mm",25.40],["10155725","BARRA RED AISI 304 Ø 31,75mm",31.75],["10166311","BARRA RED AISI 304 Ø 38,10mm",38.10]]],
+ ["Trefilados SAE 1040",M.a1040,[["10432532","BARRA RED SAE 1040 Ø 12,80mm",12.80],["10014640","BARRA RED SAE 1040 Ø 17,15mm h9",17.15]]],
+ ["Aço 1040",M.a1040,[["10014612","BARRA RED SAE 1040 Ø 18,00mm",18.00],["10014613","BARRA RED SAE 1040 Ø 19,05mm",19.05],["10014614","BARRA RED SAE 1040/45 Ø 22,23mm",22.23],["10014615","BARRA RED SAE 1040 Ø 25,40mm",25.40],["10014616","BARRA RED SAE 1040 Ø 31,75mm",31.75],["10014617","BARRA RED SAE 1040 Ø 38,10mm",38.10]]],
+ ["Trefilados SAE 1040/45 h9",M.a1040,[["16965336","BARRA RED SAE 1040/45 Ø 16,10mm h9",16.10],["16965337","BARRA RED SAE 1040/45 Ø 21,10mm h9",21.10],["16966160","BARRA RED SAE 1040/45 Ø 24,10mm h9",24.10],["17214933","BARRA RED SAE 1040/45 Ø 30,10mm h9",30.10],["17214934","BARRA RED SAE 1040/45 Ø 35,10mm h9",35.10]]]
+];
+const ITEMS={}; GROUPS.forEach(([g,m,list])=>list.forEach(([code,desc,D])=>ITEMS[code]={code,desc,D,mat:m,grupo:g}));
+let item=null, last=null;
+
+// Medidas de exemplo = as mesmas da planilha original
+const SHAPES={
+  chata:{nome:"Barra chata",mat:2,fields:[["a","Largura a",8],["b","Largura b",40],["c","Comprimento c",6000]],
+    area:v=>v.a*v.b, formula:"peso = ρ · a · b · c",
+    check:v=>null},
+  tuboRet:{nome:"Tubo retangular",mat:3,fields:[["a","Largura a",505],["b","Largura b",1205],["e","Espessura e",205],["c","Comprimento c",1205]],
+    area:v=>v.a*v.b-(v.a-2*v.e)*(v.b-2*v.e), formula:"peso = ρ · c · [a·b − (a−2e)(b−2e)]",
+    check:v=>(2*v.e>=Math.min(v.a,v.b))?"A espessura e precisa ser menor que metade do menor lado.":null},
+  redonda:{nome:"Barra redonda",mat:3,fields:[["D","Diâmetro D",25.4],["c","Comprimento c",1000]],
+    area:v=>Math.PI*v.D*v.D/4, formula:"peso = ρ · π · D² / 4 · c",
+    check:v=>null},
+  tuboRed:{nome:"Tubo redondo",mat:3,fields:[["D","Diâmetro externo D",505],["e","Espessura e",150],["c","Comprimento c",1205]],
+    area:v=>Math.PI*(v.D-v.e)*v.e, formula:"peso = ρ · π · (D − e) · e · c",
+    check:v=>(2*v.e>v.D)?"A espessura e não pode passar de metade do diâmetro.":null}
+};
+
+let shape="chata";
+const $=id=>document.getElementById(id);
+const fmt=(n,d=2)=>n.toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// tabela + select
+$("tbody").innerHTML=MATS.map((m,i)=>`<tr data-i="${i}"><td>${i+1}</td><td>${m[0]}</td><td class="n">${m[1].toLocaleString("pt-BR")}</td></tr>`).join("");
+$("mat").innerHTML=MATS.map((m,i)=>`<option value="${i}">${i+1} · ${m[0]}</option>`).join("");
+
+function buildFields(){
+  const s=SHAPES[shape];
+  $("fields").innerHTML=s.fields.map(([k,lbl,val])=>
+    `<label for="f_${k}">${lbl.replace(/ (\w+)$/," <span class='k'>$1</span>")}
+      <div class="field"><input id="f_${k}" type="number" min="0" step="any" inputmode="decimal" value="${val}"><span class="unit">mm</span></div></label>`).join("");
+  // agrupa em pares quando cabe
+  $("mat").value=s.mat;
+  $("formula").textContent=s.formula+"   (ρ em kg/mm³, medidas em mm)";
+  document.querySelectorAll(".shape").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===shape));
+  $("fields").querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{if(item&&i.id==="f_D"&&parseFloat(i.value)!==item.D)release();calc()}));
+  calc();
+}
+
+function values(){
+  const v={};SHAPES[shape].fields.forEach(([k])=>v[k]=parseFloat($("f_"+k).value.replace(",","."))||0);return v;
+}
+
+function drawing(v){
+  const W=340,H=220,cx=170,cy=105,st='stroke="var(--steel)" stroke-width="2.5"';
+  const dim=(x1,y1,x2,y2,t,tx,ty)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--muted)" stroke-width="1" marker-start="url(#ar)" marker-end="url(#ar)"/><text x="${tx}" y="${ty}" text-anchor="middle">${t}</text>`;
+  let body="";
+  if(shape==="chata"||shape==="tuboRet"){
+    const r=v.a&&v.b?v.a/v.b:.5; let w=200,h=w*r; if(h>140){h=140;w=h/r} if(h<14)h=14;
+    const x=cx-w/2,y=cy-h/2;
+    body+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--steel-fill)" ${st}/>`;
+    if(shape==="tuboRet"){const e=Math.max(4,Math.min(w,h)/2*(v.e/(Math.min(v.a,v.b)/2||1)));const ew=Math.max(0,w-2*e),eh=Math.max(0,h-2*e);
+      if(ew>0&&eh>0)body+=`<rect x="${x+e}" y="${y+e}" width="${ew}" height="${eh}" fill="var(--panel)" stroke="var(--steel)" stroke-width="1.5"/>`;
+      body+=`<text x="${x+w+14}" y="${y+e/2+4}" text-anchor="start">e ${fmt(v.e,0)}</text>`}
+    body+=dim(x,y+h+18,x+w,y+h+18,`b = ${fmt(v.b,v.b%1?1:0)}`,cx,y+h+36);
+    body+=dim(x-16,y,x-16,y+h,"",0,0)+`<text x="${x-24}" y="${cy+4}" text-anchor="end">a</text><text x="${x-24}" y="${cy+20}" text-anchor="end">${fmt(v.a,v.a%1?1:0)}</text>`;
+  }else{
+    const R=72;
+    body+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="var(--steel-fill)" ${st}/>`;
+    if(shape==="tuboRed"&&v.D){const ri=Math.max(0,R*(1-2*v.e/v.D));if(ri>0)body+=`<circle cx="${cx}" cy="${cy}" r="${ri}" fill="var(--panel)" stroke="var(--steel)" stroke-width="1.5"/>`;
+      body+=`<text x="${cx+R+10}" y="${cy+4}" text-anchor="start">e ${fmt(v.e,0)}</text>`}
+    body+=dim(cx-R,cy+R+18,cx+R,cy+R+18,`D = ${fmt(v.D,v.D%1?1:0)}`,cx,cy+R+36);
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Desenho cotado do perfil"><defs><marker id="ar" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L7,4 L0,7 Z" fill="var(--muted)"/></marker></defs>${body}</svg>`;
+}
+
+function calc(){
+  const s=SHAPES[shape],v=values(),mi=+$("mat").value,rho=MATS[mi][1]*1e-9; // kg/mm³
+  const q=Math.max(1,parseInt($("qtd").value)||1);
+  const msg=s.check(v); $("err").textContent=msg||"";
+  const area=Math.max(0,s.area(v));               // mm²
+  const peca=rho*area*v.c; last={s,v,mi,q,msg,peca};                         // kg
+  $("peso").innerHTML=(msg?"–":fmt(peca*q, peca*q<10?3:2))+"<span>kg</span>";
+  $("resLabel").textContent=q>1?`Peso total · ${q} peças`:"Peso total";
+  $("porPeca").textContent=msg?"–":fmt(peca,3)+" kg";
+  $("kgm").textContent=msg?"–":fmt(rho*area*1000,3);
+  $("dens").textContent=MATS[mi][1].toLocaleString("pt-BR")+" kg/m³";
+  $("drawing").innerHTML=drawing(v);
+  $("btnAdd").disabled=!!msg||!(peca>0);
+  if(item)$("chip").innerHTML=`Vinculado: <b>${item.code}</b> · ${item.desc} · ${MATS[item.mat][0]}`;
+  document.querySelectorAll("#tbody tr").forEach(tr=>tr.classList.toggle("sel",+tr.dataset.i===mi));
+}
+
+$("tipo").innerHTML='<option value="">— Medida livre —</option>'+GROUPS.map(([g],i)=>`<option value="${i}">${g}</option>`).join("");
+function fillItems(gi){
+  const sel=$("item");
+  if(gi===""){sel.innerHTML='<option value="">Escolha o tipo de aço primeiro</option>';sel.disabled=true;return}
+  const [g,m,list]=GROUPS[gi];
+  sel.innerHTML='<option value="">Selecione a bitola…</option>'+list.map(([c,d,D])=>`<option value="${c}">Ø ${fmt(D,2)} mm · ${d.replace(/^BARRA RED /,"").replace(/ Ø.*?mm/,"")}</option>`).join("");
+  sel.disabled=false;
+}
+fillItems("");
+$("tipo").addEventListener("change",e=>{fillItems(e.target.value);if(item)release()});
+
+function selectItem(code){
+  const it=ITEMS[code]; item=it||null;
+  if(!it){$("chip").innerHTML="Medida livre: escolha o perfil e as medidas abaixo.";markCatalog();return}
+  const gi=GROUPS.findIndex(([g])=>g===it.grupo);
+  if($("tipo").value!==String(gi)){$("tipo").value=gi;fillItems(String(gi))}
+  $("item").value=code;
+  shape="redonda"; buildFields();
+  $("f_D").value=it.D; $("mat").value=it.mat; calc();
+}
+function release(){ if(item){item=null;$("item").value="";$("chip").innerHTML="Medida livre: escolha o perfil e as medidas abaixo.";markCatalog()} }
+
+$("item").addEventListener("change",e=>{if(e.target.value)selectItem(e.target.value);else release()});
+
+function kgm(it){return MATS[it.mat][1]*1e-9*Math.PI*it.D*it.D/4*1000}
+function renderCatalog(){
+  const f=$("filtro").value.trim().toLowerCase().replace(",","."), L=parseFloat($("compr").value)||1000;
+  $("thCompr").textContent=`kg em ${fmt(L,0)} mm`;
+  let h="";
+  GROUPS.forEach(([g,m,list])=>{
+    const rows=list.filter(([c,d,D])=>!f||(c+" "+d+" "+g+" "+D).toLowerCase().replace(/,/g,".").includes(f));
+    if(!rows.length)return;
+    h+=`<tr class="grp"><td colspan="5">${g} · ${MATS[m][1].toLocaleString("pt-BR")} kg/m³</td></tr>`;
+    rows.forEach(([c,d,D])=>{const k=kgm(ITEMS[c]);h+=`<tr data-code="${c}"><td class="code">${c}</td><td>${d}</td><td class="n">${fmt(D,2)}</td><td class="n">${fmt(k,3)}</td><td class="n">${fmt(k*L/1000,3)}</td></tr>`});
+  });
+  $("ctbody").innerHTML=h||'<tr><td colspan="5">Nenhum item encontrado.</td></tr>';
+  markCatalog();
+}
+function markCatalog(){document.querySelectorAll("#ctbody tr[data-code]").forEach(tr=>tr.classList.toggle("sel",!!item&&tr.dataset.code===item.code))}
+$("ctbody").addEventListener("click",e=>{const tr=e.target.closest("tr[data-code]");if(tr){selectItem(tr.dataset.code);window.scrollTo({top:0,behavior:"smooth"})}});
+$("filtro").addEventListener("input",renderCatalog);
+$("compr").addEventListener("input",renderCatalog);
+
+document.querySelectorAll(".shape").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.s!==shape)release();shape=b.dataset.s;buildFields()}));
+$("mat").addEventListener("change",()=>{if(item&&+$("mat").value!==item.mat)release();calc()});
+$("qtd").addEventListener("input",calc);
+document.querySelectorAll("#tbody tr").forEach(tr=>tr.addEventListener("click",()=>{$("mat").value=tr.dataset.i;calc()}));
+buildFields();
+renderCatalog();
+
+/* ---------- Central de coleta ---------- */
+let db=null, userCap=null, uid=null, pend=[], envios=[], localMode=false, lastAddedId=null;
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n0=n=>fmt(n,n%1?2:0);
+
+function showView(v){
+  $("viewCalc").hidden=v!=="calc"; $("viewCentral").hidden=v!=="central";
+  $("tabCalc").setAttribute("aria-selected",v==="calc"); $("tabCentral").setAttribute("aria-selected",v==="central");
+  window.scrollTo({top:0});
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>showView(t.dataset.v)));
+$("btnVoltar").addEventListener("click",()=>showView("calc"));
+
+let toastT; function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
+
+function descAtual(){
+  const {s,v,mi}=last;
+  if(item) return `${item.desc} × ${n0(v.c)} mm`;
+  const dims={chata:`${n0(v.a)} × ${n0(v.b)}`,tuboRet:`${n0(v.a)} × ${n0(v.b)} × e ${n0(v.e)}`,redonda:`Ø ${n0(v.D)}`,tuboRed:`Ø ${n0(v.D)} × e ${n0(v.e)}`}[shape];
+  return `${s.nome.toUpperCase()} ${dims} × ${n0(v.c)} mm`;
+}
+
+$("btnAdd").addEventListener("click",async()=>{
+  if(!last||last.msg||!(last.peca>0))return;
+  const row={comprimento:last.v.c,codigo:item?item.code:"",descricao:descAtual(),material:MATS[last.mi][0],qtd:last.q,
+    pesoPeca:+last.peca.toFixed(3),pesoTotal:+(last.peca*last.q).toFixed(3),status:"pendente",criadoEm:Date.now(),criadoPor:uid||""};
+  $("btnAdd").disabled=true;
+  try{
+    const ex=pend.find(r=>chave(r)===chave(row));
+    if(ex){
+      const qtd=ex.qtd+row.qtd, pesoTotal=+(ex.pesoPeca*qtd).toFixed(3);
+      lastAddedId=ex.id;
+      if(db) await db.collection("coleta").doc(ex.id).update({qtd,pesoTotal,atualizadoEm:Date.now()});
+      else{ex.qtd=qtd;ex.pesoTotal=pesoTotal;renderPend()}
+    }else if(db){const ref=db.collection("coleta").doc();lastAddedId=ref.id;await ref.set(row)}
+    else{row.id="l"+Date.now();lastAddedId=row.id;pend.push(row);renderPend()}
+    var somado=!!ex;
+    $("qtd").value=1; calc();
+    showView("central"); toast(somado?"Item já estava na lista: quantidade somada":"Item adicionado à central de coleta");
+  }catch(e){toast(e.code==="invalid_argument"?"Você não tem permissão para adicionar itens.":"Não foi possível adicionar. Tente de novo.")}
+  finally{calc()}
+});
+
+const chave=r=>[r.codigo,r.descricao,r.material].join("|");
+function agrupar(list){
+  const m=new Map();
+  list.forEach(r=>{const k=chave(r),g=m.get(k);
+    if(g){g.qtd+=r.qtd;g.pesoTotal+=r.pesoTotal;g.ids.push(r.id);if(r.id===lastAddedId)g.id=r.id}
+    else m.set(k,{...r,ids:[r.id]})});
+  return [...m.values()].map(g=>({...g,pesoTotal:+g.pesoTotal.toFixed(3)}));
+}
+function totais(list){return list.reduce((a,r)=>({qtd:a.qtd+r.qtd,kg:a.kg+r.pesoTotal}),{qtd:0,kg:0})}
+function linhas(list,removivel){
+  return list.map(r=>`<tr${r.id===lastAddedId?' class="new"':""}><td class="code">${esc(r.codigo)||"—"}</td><td>${esc(r.descricao)}<br><small style="color:var(--muted)">${esc(r.material)}</small></td><td class="n">${r.qtd}</td><td class="n">${fmt(r.pesoPeca,3)}</td><td class="n">${fmt(r.pesoTotal,2)}</td>${removivel?`<td><button class="x" data-del="${esc((r.ids||[r.id]).join(","))}" aria-label="Remover item">×</button></td>`:""}</tr>`).join("");
+}
+function tabela(list,removivel){
+  const t=totais(list);
+  return `<div class="tbl"><table><thead><tr><th>Código</th><th>Descrição</th><th style="text-align:right">Qtd</th><th style="text-align:right">Kg/pç</th><th style="text-align:right">Kg total</th>${removivel?"<th></th>":""}</tr></thead>
+  <tbody>${linhas(list,removivel)}</tbody><tfoot><tr><td colspan="2">${list.length} ${list.length===1?"item":"itens"}</td><td class="n">${t.qtd}</td><td></td><td class="n">${fmt(t.kg,2)} kg</td>${removivel?"<td></td>":""}</tr></tfoot></table></div>`;
+}
+function renderPend(){
+  const g=agrupar(pend);
+  $("count").textContent=g.length;
+  $("pendentes").innerHTML=g.length?tabela(g,true):'<p class="empty">Nenhum item aguardando envio. Use “Adicionar à central de coleta” na calculadora.</p>';
+  $("btnCopiar").disabled=!pend.length;
+}
+$("pendentes").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-del]"); if(!b)return;
+  const ids=b.dataset.del.split(",");
+  if(db){try{for(const id of ids) await db.collection("coleta").doc(id).delete()}catch{toast("Não foi possível remover.")}}
+  else{pend=pend.filter(r=>!ids.includes(r.id));renderPend()}
+});
+
+function resumo(list,obs,cab){
+  const t=totais(list);
+  return [cab||"CPM · Solicitação de materiais", ...list.map(r=>`${r.codigo||"s/ código"} | ${r.descricao} | ${r.material} | ${r.qtd} pç | ${fmt(r.pesoTotal,2)} kg`),
+    `Total: ${list.length} itens, ${t.qtd} peças, ${fmt(t.kg,2)} kg`, obs?`Obs.: ${obs}`:""].filter(Boolean).join("\n");
+}
+$("btnCopiar").addEventListener("click",async()=>{
+  const txt=resumo(agrupar(pend),$("obs").value.trim());
+  try{await navigator.clipboard.writeText(txt);toast("Resumo copiado")}
+  catch{const ta=document.createElement("textarea");ta.value=txt;document.body.append(ta);ta.select();try{document.execCommand("copy");toast("Resumo copiado")}catch{toast("Selecione e copie o texto manualmente")}ta.remove()}
+});
+
+$("btnEnviar").addEventListener("click",()=>{
+  const g=agrupar(pend), t=totais(g);
+  $("confirmMsg").textContent=g.length
+    ?`Enviar ${g.length} ${g.length===1?"item":"itens"} (${t.qtd} peças, ${fmt(t.kg,2)} kg)? A planilha Excel é gerada com todos os materiais do catálogo, a lista é zerada e o pedido vai para o histórico.`
+    :"A lista está vazia. Gerar a planilha Excel com todos os materiais do catálogo e as quantidades em branco?";
+  $("confirmBox").hidden=false;
+});
+$("btnCancelar").addEventListener("click",()=>$("confirmBox").hidden=true);
+$("btnConfirmar").addEventListener("click",async()=>{
+  const docs=pend.slice(), list=agrupar(docs), t=totais(list), d=new Date();
+  const numero="ENV-"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"-"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+String(d.getSeconds()).padStart(2,"0");
+  const envio={numero,enviadoEm:Date.now(),enviadoPor:uid||"",obs:$("obs").value.trim(),qtdItens:list.length,qtdPecas:t.qtd,pesoTotal:+t.kg.toFixed(3),
+    itens:list.map(({codigo,descricao,material,qtd,pesoPeca,pesoTotal,comprimento})=>({codigo,descricao,material,qtd,pesoPeca,pesoTotal,comprimento:comprimento??null}))};
+  $("btnConfirmar").disabled=true;
+  try{
+    if(db){
+      await db.collection("envios").doc(numero).set(envio);
+      for(const r of docs) await db.collection("coleta").doc(r.id).delete();
+    }else{envios.unshift(envio);pend=[];renderPend();renderHist()}
+    $("obs").value=""; $("confirmBox").hidden=true; toast(`Envio ${numero} registrado`);
+    await exportar(envio);
+  }catch(e){toast(e.code==="invalid_argument"?"Você não tem permissão para enviar.":"O envio falhou. Confira a lista e tente de novo.")}
+  finally{$("btnConfirmar").disabled=false}
+});
+
+function renderHist(){
+  if(!envios.length){$("historico").innerHTML='<p class="empty">Nenhum envio ainda.</p>';return}
+  $("historico").innerHTML=envios.map(e=>`<details class="envio"><summary><b>${esc(e.numero)}</b><span>${new Date(e.enviadoEm).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</span><span>${e.qtdItens} itens · ${fmt(e.pesoTotal,2)} kg</span><span class="who" data-id="${esc(e.enviadoPor)}"></span></summary>
+    ${(e.itens||[]).length?tabela(e.itens,false):'<p class="obs">Envio sem itens.</p>'}${e.obs?`<p class="obs">Obs.: ${esc(e.obs)}</p>`:""}
+    <div class="acts"><button class="btn ghost" data-exp="${esc(e.numero)}">Baixar Excel deste envio</button></div></details>`).join("");
+  nomes();
+}
+async function nomes(){
+  document.querySelectorAll(".who[data-id]").forEach(x=>x.textContent=x.dataset.id?"por "+x.dataset.id:"");
+  if(!userCap)return;
+  const els=[...document.querySelectorAll(".who[data-id]")].filter(x=>x.dataset.id); if(!els.length)return;
+  try{const ps=await userCap.profiles([...new Set(els.map(x=>x.dataset.id))]);els.forEach(x=>x.textContent="por "+((ps[x.dataset.id]&&ps[x.dataset.id].name)||"alguém"))}catch{}
+}
+
+$("historico").addEventListener("click",e=>{const b=e.target.closest("[data-exp]");if(b){const env=envios.find(x=>x.numero===b.dataset.exp);if(env)exportar(env)}});
+
+async function exportar(e){
+  const dl=null;
+  if(!window.XLSX){toast("Não foi possível carregar o gerador de Excel. Verifique a internet.");return}
+  const itens=e.itens||[], usados=new Set();
+  const aoa=[["CPM · Solicitação de materiais"],["Envio",e.numero],["Data",new Date(e.enviadoEm).toLocaleString("pt-BR")],["Observação",e.obs||""],[],
+    ["Nº","Grupo","Código","Descrição","Material","Ø (mm)","Comprimento (mm)","Qtd (pç)","Kg/pç","Kg total"]];
+  let n=0;
+  GROUPS.forEach(([g,m,list])=>list.forEach(([code,desc,D])=>{
+    const hits=[]; itens.forEach((r,i)=>{if(r.codigo===code){hits.push(r);usados.add(i)}});
+    if(!hits.length) aoa.push([++n,g,code,desc,MATS[m][0],D,"","","",""]);
+    else hits.forEach(r=>aoa.push([++n,g,code,desc,r.material,D,r.comprimento??"",r.qtd,r.pesoPeca,r.pesoTotal]));
+  }));
+  itens.forEach((r,i)=>{if(!usados.has(i))aoa.push([++n,"Medida livre",r.codigo||"",r.descricao,r.material,"",r.comprimento??"",r.qtd,r.pesoPeca,r.pesoTotal])});
+  const r0=7, r1=aoa.length, t=totais(itens);
+  aoa.push(["","","","","","","Total",{t:"n",f:`SUM(H${r0}:H${r1})`,v:t.qtd},"",{t:"n",f:`SUM(J${r0}:J${r1})`,v:+t.kg.toFixed(3)}]);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"]=[{wch:5},{wch:24},{wch:11},{wch:42},{wch:14},{wch:9},{wch:17},{wch:9},{wch:10},{wch:11}];
+  ws["!autofilter"]={ref:`A6:J${r1}`};
+  for(let r=r0;r<=r1+1;r++){["I","J"].forEach(c=>{const cell=ws[c+r];if(cell&&typeof cell.v==="number")cell.z="0.000"})}
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Pedido");
+  const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  try{if(dl){await dl.save({filename:`Pedido ${e.numero}.xlsx`,data:new Blob([buf])})}else{XLSX.writeFile(wb,`Pedido ${e.numero}.xlsx`)}toast("Planilha baixada")}
+  catch(err){if(err&&err.code==="declined")return; toast(err&&err.code==="rate_limited"?"Já há um download aguardando confirmação.":"Não foi possível salvar a planilha.")}
+}
+
+renderPend(); renderHist();
+/* ---- backend Cloudflare (Worker + D1) ---- */
+function restDb(){
+  const subs=[];
+  const api=async(m,u,b)=>{const r=await fetch(u,{method:m,headers:{"content-type":"application/json"},body:b?JSON.stringify(b):undefined});
+    if(!r.ok)throw{code:r.status===400||r.status===403?"invalid_argument":"unavailable"};return r.json()};
+  const refresh=()=>subs.forEach(f=>f());
+  const coll=(name,q={})=>({
+    doc:(id=(crypto.randomUUID?crypto.randomUUID():"d"+Date.now()+Math.random().toString(36).slice(2)))=>({id,
+      set:d=>api("PUT",`/api/${name}/${encodeURIComponent(id)}`,d).then(refresh),
+      update:d=>api("PATCH",`/api/${name}/${encodeURIComponent(id)}`,d).then(refresh),
+      delete:()=>api("DELETE",`/api/${name}/${encodeURIComponent(id)}`).then(refresh)}),
+    where:(f,op,v)=>coll(name,{...q,where:[f,v]}),
+    orderBy:(f,dir)=>coll(name,{...q,order:[f,dir]}),
+    limit:n=>coll(name,{...q,limit:n}),
+    onSnapshot(next,err){
+      const run=async()=>{try{
+        let rows=(await api("GET",`/api/${name}`)).map(r=>({id:r.id,...r.data}));
+        if(q.where)rows=rows.filter(r=>r[q.where[0]]===q.where[1]);
+        if(q.order){const [f,d]=q.order;rows.sort((a,b)=>(a[f]>b[f]?1:-1)*(d==="desc"?-1:1))}
+        if(q.limit)rows=rows.slice(0,q.limit);
+        next({docs:rows.map(r=>({id:r.id,data:()=>r}))});
+        $("syncStatus").textContent="Lista compartilhada e salva automaticamente.";
+      }catch(e){$("syncStatus").textContent="Sem conexão com o servidor. Tentando de novo…"}};
+      subs.push(run);run();const t=setInterval(run,5000);return()=>clearInterval(t)}
+  });
+  return{collection:n=>coll(n)};
+}
+db=restDb();
+try{uid=localStorage.getItem("cpm-nome")||""}catch{}
+$("nome").value=uid;
+$("nome").addEventListener("input",e=>{uid=e.target.value.trim();try{localStorage.setItem("cpm-nome",uid)}catch{}});
+db.collection("coleta").where("status","==","pendente").onSnapshot(sn=>{
+  pend=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.criadoEm-b.criadoEm); renderPend();
+});
+db.collection("envios").orderBy("enviadoEm","desc").limit(50).onSnapshot(sn=>{
+  envios=sn.docs.map(d=>d.data()); renderHist();
+});
+</script>
+
+</body></html>

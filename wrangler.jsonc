@@ -1,0 +1,9 @@
+{
+  "name": "cpm-peso",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "cpm-peso", "database_id": "42bb70e3-096b-4387-ac99-b48f0e2c1435" }
+  ]
+}
