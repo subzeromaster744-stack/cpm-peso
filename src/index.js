@@ -1,125 +1,261 @@
-// CPM · Cálculo de Peso — API da central de coleta e do histórico (Cloudflare Worker + D1)
+// CPM · Peso de Materiais — API (Cloudflare Worker + D1)
 //
-// Coleções:
-//   coleta  – itens aguardando envio (qualquer pessoa com o link pode adicionar/remover)
-//   envios  – pedidos enviados (qualquer pessoa cria; só o admin edita ou exclui)
+// Tudo em /api exige login (exceto /api/login).
+// Papéis: "admin" vê e altera tudo e cadastra usuários; "usuario" só vê, adiciona e envia itens da própria seção.
+// Admin principal: usuário "admin" com a senha do segredo ADMIN_PASSWORD (Cloudflare → Settings → Variables and Secrets).
 //
-// Senha de admin: segredo ADMIN_PASSWORD no Cloudflare
-//   (Workers & Pages → cpm-peso → Settings → Variables and Secrets → Add → tipo Secret)
+// Tabela única docs(coll, id, data, updated_at) com as coleções:
+//   coleta    itens aguardando envio
+//   envios    pedidos enviados
+//   usuarios  contas (id = login)
+//   sessoes   sessões abertas (id = token)
 
-const COLLS = new Set(["coleta", "envios"]);
+const SECOES = ["A", "B", "C", "D"];
+const SESSAO_DIAS = 30;
+const PBKDF2_ITER = 100000;
+const ID_RE = /^[A-Za-z0-9_.:@+~-]{1,120}$/;
+const LOGIN_RE = /^[a-z0-9._-]{2,40}$/;
+
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
+const fail = (msg, status) => json({ error: msg }, status);
 
-async function sha256(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return new Uint8Array(buf);
+/* ---------- banco ---------- */
+async function getDoc(env, coll, id) {
+  const r = await env.DB.prepare("SELECT data FROM docs WHERE coll = ? AND id = ?").bind(coll, id).first();
+  return r ? JSON.parse(r.data) : null;
 }
-async function isAdmin(request, env) {
-  const given = request.headers.get("x-admin-token") || "";
-  if (!env.ADMIN_PASSWORD || !given) return false;
-  const [a, b] = await Promise.all([sha256(given), sha256(env.ADMIN_PASSWORD)]);
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
+async function listDocs(env, coll) {
+  const { results } = await env.DB.prepare(
+    "SELECT id, data FROM docs WHERE coll = ? ORDER BY updated_at DESC LIMIT 5000"
+  ).bind(coll).all();
+  return results.map((r) => ({ id: r.id, data: JSON.parse(r.data) }));
 }
-async function requireAdmin(request, env) {
-  if (!env.ADMIN_PASSWORD) return json({ error: "senha de admin não configurada" }, 503);
-  if (!(await isAdmin(request, env))) return json({ error: "senha de admin inválida" }, 401);
-  return null;
+const putStmt = (env, coll, id, data) =>
+  env.DB.prepare(
+    "INSERT INTO docs (coll, id, data, updated_at) VALUES (?, ?, ?, ?) " +
+      "ON CONFLICT(coll, id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
+  ).bind(coll, id, JSON.stringify(data), Date.now());
+const putDoc = (env, coll, id, data) => putStmt(env, coll, id, data).run();
+const delStmt = (env, coll, id) => env.DB.prepare("DELETE FROM docs WHERE coll = ? AND id = ?").bind(coll, id);
+
+/* ---------- senhas e sessões ---------- */
+const enc = new TextEncoder();
+const toHex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+const fromHex = (h) => new Uint8Array(h.match(/../g).map((x) => parseInt(x, 16)));
+async function hashSenha(senha, saltHex) {
+  const salt = saltHex ? fromHex(saltHex) : crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey("raw", enc.encode(senha), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: PBKDF2_ITER }, key, 256);
+  return { salt: toHex(salt), hash: toHex(bits) };
+}
+function iguais(a, b) {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+async function sha(text) {
+  return toHex(await crypto.subtle.digest("SHA-256", enc.encode(text)));
+}
+const publico = (u) => ({ login: u.login, nome: u.nome, secao: u.secao, papel: u.papel, ativo: u.ativo !== false });
+
+async function sessao(request, env) {
+  const auth = request.headers.get("authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!ID_RE.test(token)) return null;
+  const s = await getDoc(env, "sessoes", token);
+  if (!s || s.expira < Date.now()) return null;
+  if (s.login === "admin") return { token, login: "admin", nome: "Administrador", secao: "", papel: "admin", mestre: true };
+  const u = await getDoc(env, "usuarios", s.login);
+  if (!u || u.ativo === false) return null;
+  return { token, ...publico(u) };
 }
 
+/* ---------- rotas ---------- */
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
-    if (url.pathname === "/api/admin/check") {
-      const deny = await requireAdmin(request, env);
-      return deny || json({ ok: true });
-    }
-
-    // Envio atômico: grava o pedido e tira os itens da central numa só operação
-    if (url.pathname === "/api/enviar" && request.method === "POST") {
-      const body = await request.json().catch(() => null);
-      const envio = body && body.envio;
-      const ids = Array.isArray(body && body.ids) ? body.ids.filter((x) => typeof x === "string").slice(0, 500) : [];
-      if (!envio || typeof envio !== "object" || typeof envio.numero !== "string" || !/^[A-Za-z0-9_.:@+~-]{1,120}$/.test(envio.numero))
-        return json({ error: "envio inválido" }, 400);
-      const exists = await env.DB.prepare("SELECT 1 FROM docs WHERE coll = 'envios' AND id = ?").bind(envio.numero).first();
-      if (exists) return json({ error: "envio já existe" }, 409);
-      const txt = JSON.stringify(envio);
-      if (txt.length > 500_000) return json({ error: "envio grande demais" }, 400);
-      await env.DB.batch([
-        env.DB.prepare("INSERT INTO docs (coll, id, data, updated_at) VALUES ('envios', ?, ?, ?)").bind(envio.numero, txt, Date.now()),
-        ...ids.map((id) => env.DB.prepare("DELETE FROM docs WHERE coll = 'coleta' AND id = ?").bind(id)),
-      ]);
-      return json({ ok: true });
-    }
-
-    // Remove vários itens da central de uma vez
-    if (url.pathname === "/api/coleta/remover" && request.method === "POST") {
-      const body = await request.json().catch(() => null);
-      const ids = Array.isArray(body && body.ids) ? body.ids.filter((x) => typeof x === "string").slice(0, 500) : [];
-      if (!ids.length) return json({ error: "nenhum item" }, 400);
-      await env.DB.batch(ids.map((id) => env.DB.prepare("DELETE FROM docs WHERE coll = 'coleta' AND id = ?").bind(id)));
-      return json({ ok: true });
-    }
-
-    const m = url.pathname.match(/^\/api\/([a-z]+)(?:\/([A-Za-z0-9_.:@+~-]{1,120}))?$/);
-    if (!m) {
-      if (url.pathname.startsWith("/api/")) return json({ error: "rota inválida" }, 404);
-      return env.ASSETS.fetch(request);
-    }
-    const [, coll, id] = m;
-    if (!COLLS.has(coll)) return json({ error: "coleção inválida" }, 400);
-
+    const path = url.pathname;
+    if (!path.startsWith("/api/")) return env.ASSETS.fetch(request);
     try {
-      if (request.method === "GET" && !id) {
-        const { results } = await env.DB.prepare(
-          "SELECT id, data FROM docs WHERE coll = ? ORDER BY updated_at DESC LIMIT 5000"
-        ).bind(coll).all();
-        return json(results.map((r) => ({ id: r.id, data: JSON.parse(r.data) })));
-      }
-      if (!id) return json({ error: "id obrigatório" }, 400);
-
-      const cur = await env.DB.prepare("SELECT data FROM docs WHERE coll = ? AND id = ?").bind(coll, id).first();
-
-      if (request.method === "DELETE") {
-        if (coll === "envios") {
-          const deny = await requireAdmin(request, env);
-          if (deny) return deny;
-        }
-        await env.DB.prepare("DELETE FROM docs WHERE coll = ? AND id = ?").bind(coll, id).run();
-        return json({ ok: true });
-      }
-
-      if (request.method === "PUT" || request.method === "PATCH") {
-        // envio já existente só pode ser alterado pelo admin
-        if (coll === "envios" && (cur || request.method === "PATCH")) {
-          const deny = await requireAdmin(request, env);
-          if (deny) return deny;
-        }
-        const body = await request.json().catch(() => null);
-        if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "corpo inválido" }, 400);
-        let data = body;
-        if (request.method === "PATCH") {
-          if (!cur) return json({ error: "documento não existe" }, 400);
-          data = { ...JSON.parse(cur.data), ...body };
-        }
-        const txt = JSON.stringify(data);
-        if (txt.length > 500_000) return json({ error: "documento grande demais" }, 400);
-        await env.DB.prepare(
-          "INSERT INTO docs (coll, id, data, updated_at) VALUES (?, ?, ?, ?) " +
-            "ON CONFLICT(coll, id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
-        ).bind(coll, id, txt, Date.now()).run();
-        return json({ ok: true });
-      }
-      return json({ error: "método não suportado" }, 405);
+      return await api(request, env, path, request.method);
     } catch (e) {
-      return json({ error: "erro no servidor" }, 500);
+      return fail("erro no servidor", 500);
     }
   },
 };
+
+async function api(request, env, path, method) {
+  const body = method === "POST" || method === "PUT" || method === "PATCH" ? await request.json().catch(() => null) : null;
+
+  /* login */
+  if (path === "/api/login" && method === "POST") {
+    const login = String(body?.login || "").trim().toLowerCase();
+    const senha = String(body?.senha || "");
+    if (!login || !senha) return fail("informe usuário e senha", 400);
+    let user = null;
+    if (login === "admin") {
+      if (!env.ADMIN_PASSWORD) return fail("a senha do admin ainda não foi configurada no Cloudflare", 503);
+      if (iguais(await sha(senha), await sha(env.ADMIN_PASSWORD)))
+        user = { login: "admin", nome: "Administrador", secao: "", papel: "admin", mestre: true };
+    } else {
+      const u = await getDoc(env, "usuarios", login);
+      if (u && u.ativo !== false) {
+        const { hash } = await hashSenha(senha, u.salt);
+        if (iguais(hash, u.hash)) user = publico(u);
+      }
+    }
+    if (!user) return fail("usuário ou senha incorretos", 401);
+    const token = toHex(crypto.getRandomValues(new Uint8Array(24)));
+    await putDoc(env, "sessoes", token, { login: user.login, criada: Date.now(), expira: Date.now() + SESSAO_DIAS * 864e5 });
+    // limpeza de sessões vencidas
+    await env.DB.prepare("DELETE FROM docs WHERE coll = 'sessoes' AND json_extract(data, '$.expira') < ?").bind(Date.now()).run();
+    return json({ token, user });
+  }
+
+  const me = await sessao(request, env);
+  if (!me) return fail("faça login", 401);
+  const admin = me.papel === "admin";
+
+  if (path === "/api/me" && method === "GET") return json({ user: me });
+  if (path === "/api/logout" && method === "POST") {
+    await delStmt(env, "sessoes", me.token).run();
+    return json({ ok: true });
+  }
+
+  /* ---------- usuários (admin) ---------- */
+  if (path === "/api/usuarios" && method === "GET") {
+    if (!admin) return fail("só o admin pode ver usuários", 403);
+    return json((await listDocs(env, "usuarios")).map((r) => publico(r.data)));
+  }
+  let m = path.match(/^\/api\/usuarios\/([^/]+)$/);
+  if (m) {
+    if (!admin) return fail("só o admin pode alterar usuários", 403);
+    const login = decodeURIComponent(m[1]).toLowerCase();
+    if (!LOGIN_RE.test(login) || login === "admin") return fail("login inválido (use letras minúsculas, números, ponto, hífen ou _)", 400);
+    if (method === "DELETE") {
+      await env.DB.batch([
+        delStmt(env, "usuarios", login),
+        env.DB.prepare("DELETE FROM docs WHERE coll = 'sessoes' AND json_extract(data, '$.login') = ?").bind(login),
+      ]);
+      return json({ ok: true });
+    }
+    if (method === "PUT") {
+      const atual = await getDoc(env, "usuarios", login);
+      const nome = String(body?.nome || "").trim().slice(0, 80);
+      const papel = body?.papel === "admin" ? "admin" : "usuario";
+      const secao = SECOES.includes(body?.secao) ? body.secao : "";
+      const ativo = body?.ativo !== false;
+      const senha = String(body?.senha || "");
+      if (!nome) return fail("informe o nome", 400);
+      if (papel === "usuario" && !secao) return fail("escolha a seção do usuário", 400);
+      if (!atual && senha.length < 4) return fail("a senha precisa ter pelo menos 4 caracteres", 400);
+      if (senha && senha.length < 4) return fail("a senha precisa ter pelo menos 4 caracteres", 400);
+      const cred = senha ? await hashSenha(senha) : { salt: atual.salt, hash: atual.hash };
+      const doc = { login, nome, papel, secao, ativo, ...cred, criadoEm: atual?.criadoEm || Date.now(), atualizadoEm: Date.now() };
+      const stmts = [putStmt(env, "usuarios", login, doc)];
+      if (senha || !ativo) // troca de senha ou desativação derruba as sessões abertas
+        stmts.push(env.DB.prepare("DELETE FROM docs WHERE coll = 'sessoes' AND json_extract(data, '$.login') = ?").bind(login));
+      await env.DB.batch(stmts);
+      return json({ ok: true, user: publico(doc) });
+    }
+    return fail("método não suportado", 405);
+  }
+
+  /* ---------- central de coleta ---------- */
+  if (path === "/api/coleta" && method === "GET") {
+    let rows = await listDocs(env, "coleta");
+    if (!admin) rows = rows.filter((r) => r.data.secao === me.secao);
+    return json(rows);
+  }
+  if (path === "/api/coleta/remover" && method === "POST") {
+    const ids = Array.isArray(body?.ids) ? body.ids.filter((x) => typeof x === "string" && ID_RE.test(x)).slice(0, 500) : [];
+    if (!ids.length) return fail("nenhum item", 400);
+    if (!admin) {
+      for (const id of ids) {
+        const d = await getDoc(env, "coleta", id);
+        if (d && d.secao !== me.secao) return fail("você só pode remover itens da sua seção", 403);
+      }
+    }
+    await env.DB.batch(ids.map((id) => delStmt(env, "coleta", id)));
+    return json({ ok: true });
+  }
+  m = path.match(/^\/api\/coleta\/([^/]+)$/);
+  if (m) {
+    const id = m[1];
+    if (!ID_RE.test(id)) return fail("id inválido", 400);
+    const atual = await getDoc(env, "coleta", id);
+    if (atual && !admin && atual.secao !== me.secao) return fail("item de outra seção", 403);
+    if (method === "DELETE") {
+      await delStmt(env, "coleta", id).run();
+      return json({ ok: true });
+    }
+    if (method === "PUT" || method === "PATCH") {
+      if (!body || typeof body !== "object" || Array.isArray(body)) return fail("corpo inválido", 400);
+      let data = method === "PATCH" ? (atual ? { ...atual, ...body } : null) : body;
+      if (!data) return fail("item não existe", 400);
+      if (!admin) data.secao = me.secao; // usuário comum só grava na própria seção
+      else if (!SECOES.includes(data.secao)) return fail("seção inválida", 400);
+      if (!atual) { data.criadoPor = me.nome; data.criadoPorLogin = me.login; }
+      if (JSON.stringify(data).length > 50_000) return fail("item grande demais", 400);
+      await putDoc(env, "coleta", id, data);
+      return json({ ok: true });
+    }
+    return fail("método não suportado", 405);
+  }
+
+  /* ---------- envio (atômico) ---------- */
+  if (path === "/api/enviar" && method === "POST") {
+    const envio = body?.envio;
+    const ids = Array.isArray(body?.ids) ? body.ids.filter((x) => typeof x === "string" && ID_RE.test(x)).slice(0, 500) : [];
+    if (!envio || typeof envio !== "object" || !ID_RE.test(String(envio.numero || ""))) return fail("envio inválido", 400);
+    if (await getDoc(env, "envios", envio.numero)) return fail("envio já existe", 409);
+    if (!admin) {
+      envio.secao = me.secao;
+      envio.itens = (Array.isArray(envio.itens) ? envio.itens : []).map((r) => ({ ...r, secao: me.secao }));
+      for (const id of ids) {
+        const d = await getDoc(env, "coleta", id);
+        if (d && d.secao !== me.secao) return fail("você só pode enviar itens da sua seção", 403);
+      }
+    }
+    envio.enviadoPor = me.nome;
+    envio.enviadoPorLogin = me.login;
+    envio.enviadoEm = Date.now();
+    if (JSON.stringify(envio).length > 500_000) return fail("envio grande demais", 400);
+    await env.DB.batch([putStmt(env, "envios", envio.numero, envio), ...ids.map((id) => delStmt(env, "coleta", id))]);
+    return json({ ok: true, envio });
+  }
+
+  /* ---------- histórico ---------- */
+  if (path === "/api/envios" && method === "GET") {
+    let rows = await listDocs(env, "envios");
+    if (!admin)
+      rows = rows
+        .filter((r) => r.data.secao === me.secao || (r.data.itens || []).some((i) => i.secao === me.secao))
+        .map((r) => ({ id: r.id, data: { ...r.data, itens: (r.data.itens || []).filter((i) => (i.secao || r.data.secao) === me.secao) } }));
+    return json(rows);
+  }
+  m = path.match(/^\/api\/envios\/([^/]+)$/);
+  if (m) {
+    if (!admin) return fail("só o admin pode alterar envios", 403);
+    const id = m[1];
+    if (!ID_RE.test(id)) return fail("id inválido", 400);
+    if (method === "DELETE") {
+      await delStmt(env, "envios", id).run();
+      return json({ ok: true });
+    }
+    if (method === "PUT") {
+      if (!body || typeof body !== "object") return fail("corpo inválido", 400);
+      if (JSON.stringify(body).length > 500_000) return fail("envio grande demais", 400);
+      await putDoc(env, "envios", id, { ...body, numero: id });
+      return json({ ok: true });
+    }
+    return fail("método não suportado", 405);
+  }
+
+  return fail("rota inválida", 404);
+}

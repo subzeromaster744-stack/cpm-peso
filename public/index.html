@@ -5,7 +5,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CPM Peso">
 <title>CPM Peso de Materiais</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e8c86'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" href="/icons/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -229,17 +233,58 @@ tbody tr[data-code]:hover td{background:var(--soft)}
 
 body.on-calc .toast{bottom:calc(var(--nav-h) + 92px + env(safe-area-inset-bottom,0px))}
 @media (min-width:821px){body.on-calc .toast{bottom:16px}}
+/* login */
+body.locked .wrap,body.locked .mbar{display:none!important}
+.login{display:none;min-height:100vh;min-height:100dvh;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
+body.locked .login{display:grid}
+.login form{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 30px rgb(0 0 0 / .06)}
+.login .brand{margin:0 0 6px}
+.login p{margin:0}
+/* usuário no cabeçalho */
+.who{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.who small{color:var(--muted);font-weight:500}
+.who .btn{min-height:34px;padding:5px 10px;font-size:13px}
+.fixsec{display:flex;align-items:center;gap:8px;font-weight:700}
+@media (max-width:700px){.who .full{display:none}.who small{font-weight:700;color:var(--accent);white-space:nowrap}
+  header{flex-wrap:nowrap}.brand{min-width:0}.brand h1{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who{flex:none}}
+/* usuários */
+.urow{display:grid;grid-template-columns:minmax(0,1fr) 90px 100px auto;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)}
+.urow .nm{font-weight:600}
+.urow .nm small{display:block;color:var(--muted);font-weight:500;font-family:var(--f-mono);font-size:12px}
+.urow.off{opacity:.55}
+.urow .sec,.urow .tag{justify-self:start}
+.urow .acts{flex-wrap:nowrap}
+.tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:5px;padding:2px 7px;background:var(--soft);border:1px solid var(--line);justify-self:start}
+.tag.adm{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+@media (max-width:640px){.urow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nm acts" "meta meta"}.urow .nm{grid-area:nm}.urow .acts{grid-area:acts}.urow .meta{grid-area:meta;display:flex;gap:8px;align-items:center}}
+@media (min-width:641px){.urow .meta{display:contents}}
+.uform{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+.install{display:none}
+.install.on{display:inline-flex}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:10px;font-weight:600;z-index:40;width:max-content;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgb(0 0 0 / .2);text-align:center}
 </style>
 </head><body>
 
+<div class="login">
+  <form id="loginForm" autocomplete="on">
+    <div class="brand"><span class="logo">CPM</span><h1>Peso de Materiais</h1></div>
+    <p class="muted">Entre com o usuário e a senha que o administrador cadastrou para você.</p>
+    <label class="f" for="lgUser">Usuário<span class="inp"><input id="lgUser" class="txt" autocomplete="username" autocapitalize="none" spellcheck="false" required></span></label>
+    <label class="f" for="lgPass">Senha<span class="inp"><input id="lgPass" class="txt" type="password" autocomplete="current-password" required></span></label>
+    <p class="err" id="lgErr"></p>
+    <button class="btn block" id="lgBtn">Entrar</button>
+  </form>
+</div>
+
 <div class="wrap">
   <header>
     <div class="brand"><span class="logo">CPM</span><h1>Peso de Materiais</h1></div>
+    <div class="who" id="who"></div>
     <nav class="nav" aria-label="Páginas">
       <button data-v="calc" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8 11h.01M12 11h.01M16 11h.01M8 14.5h.01M12 14.5h.01M16 14.5h.01M8 18h.01M12 18h4"/></svg>Calcular</button>
       <button data-v="central"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Z"/><path d="M3 7.5v9L12 21l9-4.5v-9M12 12v9"/></svg>Central<span class="badge" id="count" data-n="0"></span></button>
       <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Histórico</button>
+      <button data-v="users" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.6.8 2.6 2.6 3 5.2"/></svg>Usuários</button>
     </nav>
   </header>
 
@@ -293,7 +338,7 @@ body.on-calc .toast{bottom:calc(var(--nav-h) + 92px + env(safe-area-inset-bottom
         <div class="drawing" id="drawing"></div>
         <div class="addbox">
           <p class="linked" id="linked"></p>
-          <div class="spread"><h3>Seção que pede</h3><div class="seg" id="secPick" role="group" aria-label="Seção" style="flex:0 1 220px"></div></div>
+          <div class="spread"><h3>Seção que pede</h3><div class="seg" id="secPick" role="group" aria-label="Seção" style="flex:0 1 220px"></div><div class="fixsec" id="secFix" hidden></div></div>
           <div class="addbar"><button type="button" class="btn block" id="btnAdd">＋ Adicionar à central</button></div>
         </div>
       </div>
@@ -318,10 +363,7 @@ body.on-calc .toast{bottom:calc(var(--nav-h) + 92px + env(safe-area-inset-bottom
     <div class="spread"><h2>Central de coleta</h2><span class="sync" id="sync"><i></i><span>Conectando…</span></span></div>
     <div class="chips" id="cenSec"></div>
     <div id="pendentes"></div>
-    <div class="grid2 stack">
-      <label class="f" for="nome">Seu nome<span class="inp"><input id="nome" class="txt" autocomplete="name" placeholder="Aparece no histórico"></span></label>
-      <label class="f" for="obs">Observação<textarea id="obs" rows="1" placeholder="Ex.: entrega até sexta"></textarea></label>
-    </div>
+    <label class="f" for="obs">Observação do envio<textarea id="obs" rows="1" placeholder="Ex.: entrega até sexta"></textarea></label>
     <div class="row stack">
       <button type="button" class="btn" id="btnEnviar">Enviar e gerar Excel</button>
       <button type="button" class="btn quiet" id="btnCopiar">Copiar resumo</button>
@@ -361,6 +403,26 @@ body.on-calc .toast{bottom:calc(var(--nav-h) + 92px + env(safe-area-inset-bottom
       <div id="historico"></div>
     </section>
   </div>
+
+  <!-- ===================== USUÁRIOS (admin) ===================== -->
+  <section id="view-users" class="card" hidden>
+    <div class="spread"><h2>Usuários</h2><span class="note" id="uCount"></span></div>
+    <form class="card" id="uForm" style="background:var(--soft)">
+      <div class="spread"><h3 id="uFormTitle">Cadastrar pessoa</h3><button type="button" class="btn quiet sm" id="uNovo" hidden>Novo cadastro</button></div>
+      <div class="uform">
+        <label class="f" for="uNome">Nome<span class="inp"><input id="uNome" class="txt" required maxlength="80" placeholder="Ex.: João Silva"></span></label>
+        <label class="f" for="uLogin">Usuário (login)<span class="inp"><input id="uLogin" class="txt" required autocapitalize="none" spellcheck="false" placeholder="ex.: joao.silva" pattern="[a-z0-9._-]{2,40}"></span></label>
+        <label class="f" for="uSenha"><span id="uSenhaLbl">Senha</span><span class="inp"><input id="uSenha" class="txt" type="password" autocomplete="new-password" placeholder="mínimo 4 caracteres"></span></label>
+        <label class="f" for="uPapel">Tipo<select id="uPapel"><option value="usuario">Usuário da seção</option><option value="admin">Administrador</option></select></label>
+        <label class="f" for="uSecao">Seção<select id="uSecao"><option value="A">Seção A</option><option value="B">Seção B</option><option value="C">Seção C</option><option value="D">Seção D</option></select></label>
+        <label class="f" for="uAtivo">Situação<select id="uAtivo"><option value="1">Ativo</option><option value="0">Bloqueado</option></select></label>
+      </div>
+      <p class="err" id="uErr"></p>
+      <div class="row"><button class="btn" id="uSalvar">Cadastrar</button></div>
+    </form>
+    <div id="uLista"></div>
+    <p class="note">O usuário <b>admin</b> é o administrador principal; a senha dele fica no Cloudflare (ADMIN_PASSWORD). Usuários de seção só veem, adicionam e enviam itens da própria seção.</p>
+  </section>
 </div>
 <div class="mbar" id="mbar">
   <div class="mv"><small id="mLabel">Peso total</small><b id="mVal">–</b></div>
@@ -420,12 +482,15 @@ const kgFmt=k=>fmt(k,k<10?3:2);
 const curto=s=>String(s||"").replace(/^BARRA RED /,"");
 
 /* ===================== API ===================== */
-let adminToken=SS.get("cpm-admin");
-async function api(method,url,body,admin){
-  const h={"content-type":"application/json"}; if(admin&&adminToken)h["x-admin-token"]=adminToken;
+let token=LS.get("cpm-token",""), me=null;
+const isAdm=()=>!!me&&me.papel==="admin";
+async function api(method,url,body){
+  const h={"content-type":"application/json"}; if(token)h.authorization="Bearer "+token;
   const r=await fetch(url,{method,headers:h,body:body?JSON.stringify(body):undefined,cache:"no-store"});
   let j=null; try{j=await r.json()}catch{}
-  if(!r.ok){const e=new Error((j&&j.error)||"erro "+r.status);e.status=r.status;throw e}
+  if(!r.ok){
+    if(r.status===401&&url!=="/api/login"&&me){bloquear("Sua sessão terminou. Entre de novo.")}
+    const e=new Error((j&&j.error)||"erro "+r.status);e.status=r.status;throw e}
   return j;
 }
 
@@ -434,7 +499,8 @@ let view="calc";
 function showView(v){
   view=v; document.body.classList.toggle("on-calc",v==="calc");
   $("view-calc").hidden=v!=="calc"; $("refBox").hidden=v!=="calc";
-  $("view-central").hidden=v!=="central"; $("view-hist").hidden=v!=="hist";
+  $("view-central").hidden=v!=="central"; $("view-hist").hidden=v!=="hist"; $("view-users").hidden=v!=="users";
+  if(v==="users")loadUsers();
   document.querySelectorAll(".nav button").forEach(b=>b.dataset.v===v?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
   if(v==="hist")loadEnvios().catch(()=>{}).finally(()=>renderHist(true));
   if(v==="central")sync();
@@ -559,9 +625,7 @@ $("filtro").addEventListener("input",renderCat);
 $("catTbl").addEventListener("click",e=>{const tr=e.target.closest("tr[data-code]");if(!tr)return;const it=ITEMS[tr.dataset.code];st.src="cat";st.gi=it.gi;st.code=it.code;syncUI();window.scrollTo({top:0,behavior:"smooth"});toast("Bitola selecionada na calculadora")});
 
 /* ===================== CENTRAL ===================== */
-let pend=[], envios=[], cenSec="Todas", flashKey=null, uid=LS.get("cpm-nome","");
-$("nome").value=uid;
-$("nome").addEventListener("input",e=>{uid=e.target.value.trim();LS.set("cpm-nome",uid)});
+let pend=[], envios=[], cenSec="Todas", flashKey=null;
 
 function chipsSec(el,curS,pick){
   el.innerHTML=["Todas",...SECOES].map(s=>`<button type="button" class="chip" data-s="${s}" aria-pressed="${s===curS}">${s==="Todas"?"Todas as seções":"Seção "+s}</button>`).join("");
@@ -575,7 +639,7 @@ const keyLinha=r=>[r.codigo||"",r.descricao,r.material,r.secao||""].join("|");
 const keyMat=r=>[r.codigo||"",baseOf(r),r.material,r.secao||"-"].join("|");
 
 async function addToColeta(row){
-  row={...row,secao:st.secao,status:"pendente",criadoEm:Date.now(),criadoPor:uid||""};
+  row={...row,secao:isAdm()?st.secao:me.secao,status:"pendente",criadoEm:Date.now()};
   $("btnAdd").disabled=true; $("mAdd").disabled=true;
   try{
     const ex=pend.find(r=>keyLinha(r)===keyLinha(row));
@@ -649,14 +713,14 @@ $("btnCancelar").addEventListener("click",()=>$("confirmBox").hidden=true);
 $("btnConfirmar").addEventListener("click",async()=>{
   const docs=pendFiltro().slice(), t=somar(docs), d=new Date(), p2=x=>String(x).padStart(2,"0");
   const numero=`ENV-${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
-  const envio={numero,enviadoEm:Date.now(),enviadoPor:uid||"",secao:cenSec,obs:$("obs").value.trim(),
+  const envio={numero,enviadoEm:Date.now(),enviadoPor:me.nome,secao:isAdm()?cenSec:me.secao,obs:$("obs").value.trim(),
     qtdItens:agrupar(docs).length,qtdPecas:t.qtd,pesoTotal:+t.kg.toFixed(3),
     itens:docs.map(r=>({codigo:r.codigo||"",base:baseOf(r),descricao:r.descricao,material:r.material,qtd:r.qtd,pesoPeca:r.pesoPeca,pesoTotal:r.pesoTotal,comprimento:r.comprimento??null,secao:r.secao||""}))};
   $("btnConfirmar").disabled=true;
   try{
-    await api("POST","/api/enviar",{envio,ids:docs.map(r=>r.id)});
+    const res=await api("POST","/api/enviar",{envio,ids:docs.map(r=>r.id)});
     $("obs").value=""; $("confirmBox").hidden=true; toast(`Envio ${numero} registrado`);
-    exportar(envio);
+    exportar(res.envio||envio);
     await loadColeta(); loadEnvios().catch(()=>{});
   }catch(e){toast(e.status===409?"Esse envio já foi registrado.":"O envio falhou. Nada foi alterado; tente de novo.")}
   finally{$("btnConfirmar").disabled=false}
@@ -716,7 +780,7 @@ function mkChart(id,cfg,empty){
 }
 function renderHist(force){
   if(view!=="hist")return;
-  const sig=JSON.stringify(envios.map(e=>[e.numero,e.pesoTotal,e.secao,e.obs,e.enviadoPor,(e.itens||[]).length]))+histSec+$("histPer").value+!!adminToken+editing+askDel;
+  const sig=JSON.stringify(envios.map(e=>[e.numero,e.pesoTotal,e.secao,e.obs,e.enviadoPor,(e.itens||[]).length]))+histSec+$("histPer").value+isAdm()+editing+askDel;
   if(!force&&sig===lastSig)return; lastSig=sig;
   const rows=linhasHist(), envs=envFiltro(), t=somar(rows);
   $("kKg").textContent=fmt(t.kg,t.kg<100?2:0);
@@ -762,7 +826,7 @@ function envioHTML(e){
   }else{
     body=(gs.length?listaHTML(gs,false):'<p class="note">Envio sem itens.</p>')+(e.obs?`<p class="note">Obs.: ${esc(e.obs)}</p>`:"")+
       `<div class="row"><button type="button" class="btn quiet sm" data-act="xls" data-n="${esc(e.numero)}">Baixar Excel</button>
-      ${adminToken?`<button type="button" class="btn quiet sm" data-act="edit" data-n="${esc(e.numero)}">Editar</button><button type="button" class="btn quiet sm" style="color:var(--danger)" data-act="askdel" data-n="${esc(e.numero)}">Excluir</button>`:""}</div>`+
+      ${isAdm()?`<button type="button" class="btn quiet sm" data-act="edit" data-n="${esc(e.numero)}">Editar</button><button type="button" class="btn quiet sm" style="color:var(--danger)" data-act="askdel" data-n="${esc(e.numero)}">Excluir</button>`:""}</div>`+
       (dl?`<div class="confirm del"><p>Excluir o envio ${esc(e.numero)}? Isso não pode ser desfeito.</p><button type="button" class="btn danger" data-act="del" data-n="${esc(e.numero)}">Excluir</button><button type="button" class="btn quiet" data-act="cancel">Cancelar</button></div>`:"");
   }
   const sec=e.secao&&e.secao!=="Todas"?`<span class="sec">${esc(e.secao)}</span>`:`<span class="sec" title="Todas as seções">✱</span>`;
@@ -800,29 +864,98 @@ $("historico").addEventListener("click",async ev=>{
   }
 });
 
-/* ===================== ADMIN ===================== */
-let adminOpen=false;
+/* ===================== PERMISSÕES ===================== */
 function adminErr(e){
-  if(e.status===401){adminToken=null;SS.set("cpm-admin",null);editing=null;askDel=null;toast("Sessão de admin expirada. Entre de novo.");renderHist(true)}
-  else if(e.status===503)toast("A senha de admin ainda não foi configurada no Cloudflare.");
+  if(e.status===401)return;
+  if(e.status===403)toast("Só o administrador pode fazer isso.");
   else toast("Não foi possível salvar. Verifique a conexão.");
 }
-function renderAdminBar(){
-  const el=$("adminBar");
-  if(adminToken){el.innerHTML=`<h2>Envios</h2><div class="row"><span class="pill">Admin</span><button type="button" class="btn quiet sm" id="admSair">Sair</button></div>`;
-    $("admSair").onclick=()=>{adminToken=null;SS.set("cpm-admin",null);editing=null;askDel=null;renderHist(true)};return}
-  el.innerHTML=`<h2>Envios</h2>`+(adminOpen
-    ?`<form class="row" id="admForm" style="flex:1 1 280px;justify-content:flex-end"><span class="inp" style="flex:1;max-width:220px;min-height:38px"><input id="admPass" class="txt" type="password" placeholder="Senha de admin" autocomplete="current-password" aria-label="Senha de admin"></span><button class="btn sm">Entrar</button><button type="button" class="btn quiet sm" id="admCancel">Cancelar</button></form>`
-    :`<button type="button" class="btn quiet sm" id="admOpen">Entrar como admin</button>`);
-  if(adminOpen){
-    $("admPass").focus();
-    $("admCancel").onclick=()=>{adminOpen=false;renderAdminBar()};
-    $("admForm").onsubmit=async ev=>{ev.preventDefault();const pass=$("admPass").value;if(!pass)return;
-      adminToken=pass;
-      try{await api("GET","/api/admin/check",null,true);SS.set("cpm-admin",pass);adminOpen=false;toast("Modo admin ativado");renderHist(true)}
-      catch(e){adminToken=null;toast(e.status===503?"A senha de admin ainda não foi configurada no Cloudflare.":"Senha incorreta.")}};
-  }else $("admOpen").onclick=()=>{adminOpen=true;renderAdminBar()};
+function renderAdminBar(){$("adminBar").innerHTML=`<h2>Envios</h2>${isAdm()?'<span class="pill">Admin</span>':""}`}
+
+/* ===================== USUÁRIOS (admin) ===================== */
+let users=[], uEdit=null;
+async function loadUsers(){
+  if(!isAdm())return;
+  try{users=(await api("GET","/api/usuarios")).sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));renderUsers()}
+  catch(e){if(e.status!==401)$("uLista").innerHTML='<p class="empty">Não foi possível carregar os usuários.</p>'}
 }
+function renderUsers(){
+  $("uCount").textContent=`${users.length} ${users.length===1?"pessoa":"pessoas"}`;
+  const porSec=SECOES.map(s=>[s,users.filter(u=>u.papel==="usuario"&&u.secao===s)]);
+  const adms=users.filter(u=>u.papel==="admin");
+  const row=u=>`<div class="urow${u.ativo?"":" off"}"><div class="nm">${esc(u.nome)}<small>${esc(u.login)}</small></div>
+    <span class="meta">${u.papel==="admin"?'<span class="tag adm">Admin</span>':`<span class="sec">${esc(u.secao)}</span>`}<span class="tag">${u.ativo?"Ativo":"Bloqueado"}</span></span>
+    <span class="acts row" style="gap:4px;justify-content:flex-end"><button type="button" class="btn quiet sm" data-uedit="${esc(u.login)}">Editar</button><button type="button" class="x" data-udel="${esc(u.login)}" aria-label="Excluir ${esc(u.nome)}">×</button></span></div>`;
+  let h="";
+  porSec.forEach(([s,l])=>{h+=`<h3 style="margin:14px 0 2px">Seção ${s} · ${l.length}</h3>`+(l.length?l.map(row).join(""):'<p class="note" style="padding:8px 4px">Ninguém cadastrado.</p>')});
+  if(adms.length)h+=`<h3 style="margin:14px 0 2px">Administradores · ${adms.length}</h3>`+adms.map(row).join("");
+  $("uLista").innerHTML=h+(uDel?`<div class="confirm del" style="margin-top:12px"><p>Excluir o usuário ${esc(uDel)}? Ele perde o acesso na hora. Os envios dele continuam no histórico.</p><button type="button" class="btn danger" id="uDelOk">Excluir</button><button type="button" class="btn quiet" id="uDelNo">Cancelar</button></div>`:"");
+  if(uDel){$("uDelNo").onclick=()=>{uDel=null;renderUsers()};$("uDelOk").onclick=async()=>{try{await api("DELETE","/api/usuarios/"+encodeURIComponent(uDel));toast("Usuário excluído");uDel=null;loadUsers()}catch(e){adminErr(e)}}}
+}
+let uDel=null;
+function uFormReset(u){
+  uEdit=u?u.login:null;
+  $("uFormTitle").textContent=u?`Editar ${u.nome}`:"Cadastrar pessoa";
+  $("uNome").value=u?u.nome:""; $("uLogin").value=u?u.login:""; $("uLogin").disabled=!!u;
+  $("uSenha").value=""; $("uSenhaLbl").textContent=u?"Nova senha (deixe vazio para manter)":"Senha";
+  $("uPapel").value=u?u.papel:"usuario"; $("uSecao").value=u&&u.secao?u.secao:"A"; $("uAtivo").value=!u||u.ativo?"1":"0";
+  $("uSalvar").textContent=u?"Salvar alterações":"Cadastrar"; $("uNovo").hidden=!u; $("uErr").textContent="";
+  $("uSecao").closest("label").hidden=$("uPapel").value==="admin";
+}
+$("uPapel").addEventListener("change",()=>{$("uSecao").closest("label").hidden=$("uPapel").value==="admin"});
+$("uNovo").addEventListener("click",()=>uFormReset(null));
+$("uLogin").addEventListener("input",e=>{const v=e.target.value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9._-]/g,"");if(v!==e.target.value)e.target.value=v});
+$("uLista").addEventListener("click",e=>{
+  const ed=e.target.closest("[data-uedit]"); if(ed){uFormReset(users.find(u=>u.login===ed.dataset.uedit));$("uForm").scrollIntoView({behavior:"smooth",block:"start"});return}
+  const dl=e.target.closest("[data-udel]"); if(dl){uDel=dl.dataset.udel;renderUsers()}
+});
+$("uForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  const login=(uEdit||$("uLogin").value).trim().toLowerCase();
+  if(!uEdit&&users.some(u=>u.login===login)){$("uErr").textContent="Já existe um usuário com esse login.";return}
+  const body={nome:$("uNome").value.trim(),papel:$("uPapel").value,secao:$("uPapel").value==="admin"?"":$("uSecao").value,ativo:$("uAtivo").value==="1",senha:$("uSenha").value};
+  $("uSalvar").disabled=true;
+  try{await api("PUT","/api/usuarios/"+encodeURIComponent(login),body);toast(uEdit?"Usuário atualizado":`Usuário ${login} cadastrado`);uFormReset(null);loadUsers()}
+  catch(e){if(e.status!==401)$("uErr").textContent=e.message.charAt(0).toUpperCase()+e.message.slice(1)+"."}
+  finally{$("uSalvar").disabled=false}
+});
+
+/* ===================== LOGIN ===================== */
+function bloquear(msg){
+  me=null; token=""; LS.set("cpm-token",""); LS.set("cpm-user","");
+  document.body.classList.add("locked"); $("lgErr").textContent=msg||""; $("lgPass").value="";
+  setTimeout(()=>$("lgUser").focus(),50);
+}
+function entrar(user){
+  me=user; LS.set("cpm-user",JSON.stringify(user)); document.body.classList.remove("locked");
+  const adm=isAdm();
+  $("who").innerHTML=`<span class="nm2"><span class="full">${esc(me.nome)} · </span><small>${adm?"Admin":"Seção "+esc(me.secao)}</small></span><button type="button" class="btn quiet install" id="btnInstall">Instalar app</button><button type="button" class="btn quiet" id="btnSair">Sair</button>`;
+  $("btnSair").onclick=async()=>{try{await api("POST","/api/logout")}catch{}bloquear("")};
+  $("btnInstall").onclick=instalar; if(deferredPrompt)$("btnInstall").classList.add("on");
+  document.querySelector('.nav [data-v="users"]').hidden=!adm;
+  // seção: admin escolhe; usuário fica preso à sua
+  $("secPick").hidden=!adm; $("secFix").hidden=adm; $("mSec").hidden=!adm;
+  if(!adm){st.secao=me.secao;$("secFix").innerHTML=`<span class="sec">${esc(me.secao)}</span> Seção ${esc(me.secao)}`;cenSec=me.secao;histSec=me.secao}
+  else{cenSec="Todas";histSec="Todas"}
+  $("cenSec").hidden=!adm; $("histSec").hidden=!adm; drawCenSec(); drawHistSec();
+  pendSig=""; lastSig=""; pend=[]; envios=[]; renderPend();
+  showView("calc"); sync();
+}
+$("loginForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  $("lgBtn").disabled=true; $("lgErr").textContent="";
+  try{const r=await api("POST","/api/login",{login:$("lgUser").value.trim().toLowerCase(),senha:$("lgPass").value});
+    token=r.token; LS.set("cpm-token",token); LS.set("cpm-ultimo",r.user.login); entrar(r.user)}
+  catch(e){$("lgErr").textContent=e.status===401?"Usuário ou senha incorretos.":e.status===503?"O administrador principal ainda não foi configurado no Cloudflare.":"Sem conexão com o servidor."}
+  finally{$("lgBtn").disabled=false}
+});
+
+/* ===================== APP (PWA) ===================== */
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;const b=$("btnInstall");if(b)b.classList.add("on")});
+window.addEventListener("appinstalled",()=>{deferredPrompt=null;const b=$("btnInstall");if(b)b.classList.remove("on");toast("App instalado")});
+async function instalar(){if(!deferredPrompt)return;deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch{}deferredPrompt=null;$("btnInstall").classList.remove("on")}
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 
 /* ===================== SINCRONIZAÇÃO ===================== */
 let pendSig="";
@@ -840,7 +973,7 @@ async function loadEnvios(){
 function setSync(ok){const s=$("sync");s.className="sync "+(ok?"ok":"off");s.lastElementChild.textContent=ok?"Sincronizado":"Sem conexão · tentando de novo"}
 let tick=0, busy=false;
 async function sync(){
-  if(busy)return; busy=true;
+  if(busy||!me)return; busy=true;
   try{await loadColeta();if(view==="hist"&&tick%3===0)await loadEnvios();setSync(true)}catch{setSync(false)}
   finally{busy=false;tick++}
 }
@@ -848,8 +981,15 @@ async function sync(){
 /* ===================== INÍCIO ===================== */
 document.body.classList.add("on-calc");
 syncUI(); renderCat(); renderPend();
-sync(); setInterval(()=>{if(!document.hidden)sync()},5000);
+$("lgUser").value=LS.get("cpm-ultimo","");
+if(token){
+  document.body.classList.add("locked");
+  api("GET","/api/me").then(r=>entrar(r.user)).catch(e=>{
+    // sem internet: libera a calculadora com o último usuário conhecido
+    if(!e.status&&LS.get("cpm-user","")){try{entrar(JSON.parse(LS.get("cpm-user","")));toast("Sem conexão: a calculadora funciona, a central volta quando a internet voltar.")}catch{bloquear("")}}
+    else bloquear("")});
+}else bloquear("");
+setInterval(()=>{if(!document.hidden)sync()},5000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)sync()});
-if(adminToken)api("GET","/api/admin/check",null,true).catch(()=>{adminToken=null;SS.set("cpm-admin",null)});
 </script>
 </body></html>
