@@ -205,8 +205,38 @@ tbody tr[data-code]:hover td{background:var(--soft)}
 
 /* ---------- histórico ---------- */
 #view-hist{display:flex;flex-direction:column;gap:12px}
-.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis .kpi:last-child{grid-column:1/-1}}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+@media (max-width:1040px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi b.up{color:var(--c2)}.kpi b.down{color:var(--ok)}
+label.f.inline{flex-direction:row;align-items:center;gap:8px}
+.inp.sm{min-height:38px;width:120px}.inp.sm input{font-size:17px;padding:4px 8px}
+.chart.wide{grid-column:1/-1}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);font-weight:600}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend i.ln{height:3px;border-radius:2px;background:var(--ink)}
+table.mes td,table.mes th{white-space:nowrap}
+table.mes td{font-variant-numeric:tabular-nums}
+table.mes td:first-child{font-weight:600}
+table.mes .up{color:var(--c2)}table.mes .down{color:var(--ok)}
+table.mes tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:0}
+table.mes tr.atual td{background:var(--soft)}
+@media (max-width:640px){
+  table.mes thead{display:none}
+  table.mes,table.mes tbody,table.mes tfoot{display:block}
+  table.mes tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  table.mes tr.atual{background:var(--soft);border-radius:8px}
+  table.mes tr.atual td{background:transparent}
+  table.mes td{border:0;padding:0;display:flex;flex-direction:column;text-align:left;white-space:normal;font-family:var(--f-display);font-weight:600;font-size:17px}
+  table.mes td::before{content:attr(data-l);font-family:var(--f-body);font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  table.mes td:first-child{grid-column:1/-1;font-family:var(--f-body);font-size:15px;font-weight:700}
+  table.mes td:first-child::before{display:none}
+  table.mes td[data-l="Total"],table.mes td[data-l="Dif. %"]{display:none}
+  table.mes tfoot tr{border-top:2px solid var(--line);border-bottom:0}
+  table.mes tfoot td{border:0}
+  table.mes tfoot td[data-l="Média"]{grid-column:1/-1}
+}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;min-width:0}
 .kpi span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 .kpi b{font-family:var(--f-display);font-size:30px;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
@@ -386,24 +416,36 @@ body.locked .login{display:grid}
   <div id="view-hist" hidden>
     <section class="card">
       <div class="spread"><h2>Histórico</h2>
-        <select id="histPer" style="width:auto;min-height:38px" aria-label="Período">
-          <option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option>
-          <option value="365" selected>Últimos 12 meses</option><option value="0">Tudo</option>
-        </select></div>
+        <div class="row">
+          <label class="f inline" for="histBarra">Barra padrão<span class="inp sm"><input id="histBarra" inputmode="decimal" autocomplete="off"><span class="u">mm</span></span></label>
+          <select id="histPer" style="width:auto;min-height:38px" aria-label="Período">
+            <option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option>
+            <option value="365" selected>Últimos 12 meses</option><option value="0">Tudo</option>
+          </select></div></div>
       <div class="chips" id="histSec"></div>
     </section>
     <div class="kpis">
-      <div class="kpi"><span>Peso enviado</span><b id="kKg">0</b><small>kg</small></div>
+      <div class="kpi"><span>Consumo</span><b id="kKg">0</b><small id="kComp">kg</small></div>
+      <div class="kpi"><span>Perda de corte</span><b id="kPerda">0</b><small id="kPerdaPct">–</small></div>
+      <div class="kpi"><span id="kDifLbl">Diferença</span><b id="kDif">–</b><small id="kDifPct">–</small></div>
       <div class="kpi"><span>Envios</span><b id="kEnv">0</b><small id="kEnvMed">–</small></div>
-      <div class="kpi"><span>Peças</span><b id="kPc">0</b><small id="kComp">–</small></div>
       <div class="kpi"><span>Seção que mais pede</span><b id="kSec">–</b><small id="kSecKg">–</small></div>
       <div class="kpi"><span>Mais pedido</span><b class="sm" id="kTop">–</b><small id="kTopKg">–</small></div>
     </div>
+    <section class="card" id="mesBox">
+      <div class="spread"><h2>Mês a mês</h2><button type="button" class="btn quiet sm" id="mesXls">Baixar Excel</button></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Consumo</span><span><i style="background:var(--c2)"></i>Perda de corte</span><span><i class="ln"></i>Diferença do mês anterior</span></div>
+      <div class="cv" style="height:250px;position:relative"><canvas id="chMes"></canvas></div>
+      <div class="tbl"><table class="mes">
+        <thead><tr><th>Mês</th><th class="n">Consumo (kg)</th><th class="n">Perda (kg)</th><th class="n">Perda %</th><th class="n">Material total (kg)</th><th class="n">Diferença (kg)</th><th class="n">Dif. %</th></tr></thead>
+        <tbody id="mesTbl"></tbody><tfoot id="mesTot"></tfoot>
+      </table></div>
+      <p class="note" id="mesNota"></p>
+    </section>
     <div class="charts">
-      <div class="chart"><h3>Kg por mês</h3><div class="cv"><canvas id="chMes"></canvas></div></div>
       <div class="chart"><h3>Kg por seção</h3><div class="cv"><canvas id="chSec"></canvas></div></div>
-      <div class="chart"><h3>Materiais mais pedidos (kg)</h3><div class="cv"><canvas id="chTop"></canvas></div></div>
       <div class="chart"><h3>Kg por tipo de aço</h3><div class="cv"><canvas id="chTipo"></canvas></div></div>
+      <div class="chart wide"><h3>Materiais mais pedidos (kg)</h3><div class="cv"><canvas id="chTop"></canvas></div></div>
     </div>
     <section class="card">
       <div class="spread" id="adminBar"></div>
@@ -781,11 +823,79 @@ async function exportar(e){
   XLSX.writeFile(wb,`Pedido ${e.numero}.xlsx`);
 }
 
+/* ===================== EXCEL MÊS A MÊS ===================== */
+$("mesXls").addEventListener("click",async()=>{
+  try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel.");return}
+  const aoa=[["CPM · Consumo, perda e diferença mês a mês"],["Seção",histSec==="Todas"?"Todas":"Seção "+histSec],["Barra padrão (mm)",barraPadrao],["Gerado em",new Date().toLocaleString("pt-BR")],[],
+    ["Mês","Consumo (kg)","Perda de corte (kg)","Perda %","Material total (kg)","Diferença (kg)","Diferença %"]];
+  const h=aoa.length;
+  mesLinhas.forEach(r=>aoa.push([r.mes,+r.consumo.toFixed(3),+r.perda.toFixed(3),r.total?+(r.perdaPct/100).toFixed(4):"",+r.total.toFixed(3),+r.dif.toFixed(3),r.difPct==null?"":+(r.difPct/100).toFixed(4)]));
+  const r0=h+1,r1=aoa.length;
+  aoa.push(["Total",{t:"n",f:`SUM(B${r0}:B${r1})`},{t:"n",f:`SUM(C${r0}:C${r1})`},{t:"n",f:`IF(E${r1+1}=0,"",C${r1+1}/E${r1+1})`},{t:"n",f:`SUM(E${r0}:E${r1})`},"",""]);
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"]=[{wch:20},{wch:14},{wch:18},{wch:10},{wch:18},{wch:15},{wch:13}];
+  for(let r=r0;r<=r1+1;r++){["B","C","E","F"].forEach(c=>{if(ws[c+r])ws[c+r].z="#,##0.00"});["D","G"].forEach(c=>{if(ws[c+r])ws[c+r].z="0.0%"})}
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Mês a mês");
+  XLSX.writeFile(wb,`CPM mês a mês ${histSec==="Todas"?"todas":"seção "+histSec} ${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
 /* ===================== HISTÓRICO ===================== */
 let histLimit=20, histSec="Todas", charts={}, lastSig="", editing=null, askDel=null, openEnv=new Set(), chartWait=0;
 const drawHistSec=()=>chipsSec($("histSec"),histSec,s=>{histSec=s;histLimit=20;drawHistSec();renderHist(true)});
 drawHistSec();
 $("histPer").addEventListener("change",()=>{histLimit=20;renderHist(true)});
+
+/* barra padrão para calcular a sobra de corte */
+let barraPadrao=num(LS.get("cpm-barra","6000"))||6000;
+$("histBarra").value=String(barraPadrao);
+$("histBarra").addEventListener("input",e=>{const v=num(e.target.value);if(v>=100){barraPadrao=v;LS.set("cpm-barra",String(v));renderHist(true)}});
+
+// Sobra de corte de um conjunto de itens: por material, encaixa os cortes nas barras padrão
+// (maior corte primeiro, na primeira barra onde couber) e soma o que sobra de cada barra.
+function perdaDe(itens,B){
+  const grupos=new Map();
+  itens.forEach(r=>{
+    const c=+r.comprimento||0; if(!(c>0)||!(r.pesoPeca>0))return;
+    const k=(r.codigo||baseOf(r))+"|"+r.material; let g=grupos.get(k);
+    if(!g){g={kgmm:r.pesoPeca/c,cortes:[]};grupos.set(k,g)}
+    for(let i=0;i<Math.min(r.qtd,5000);i++)g.cortes.push(c);
+  });
+  let kg=0,mm=0,barras=0;
+  grupos.forEach(g=>{
+    const sobras=[];
+    g.cortes.sort((a,b)=>b-a).forEach(c=>{
+      if(c>=B){const inteiras=Math.floor(c/B);barras+=inteiras;c=c-inteiras*B;if(c<=0)return}
+      const i=sobras.findIndex(rest=>rest>=c);
+      if(i>=0)sobras[i]-=c; else{sobras.push(B-c);barras++}
+    });
+    const s=sobras.reduce((a,x)=>a+x,0); mm+=s; kg+=s*g.kgmm;
+  });
+  return {kg,mm,barras};
+}
+const mesKey=(y,m)=>y*12+m;
+const nomeMes=(k,curto)=>{const d=new Date(Math.floor(k/12),k%12,1),m=d.toLocaleDateString("pt-BR",{month:curto?"short":"long"}).replace(".","");return curto?m:m.charAt(0).toUpperCase()+m.slice(1)+" "+d.getFullYear()};
+// consumo e perda por mês (respeita o filtro de seção, não o de período)
+function serieMensal(){
+  const mp=new Map();
+  envios.forEach(e=>{
+    const its=(e.itens||[]).filter(r=>histSec==="Todas"||secItem(r,e)===histSec); if(!its.length)return;
+    const d=new Date(e.enviadoEm), k=mesKey(d.getFullYear(),d.getMonth());
+    const a=mp.get(k)||{consumo:0,perda:0,pecas:0,envios:0};
+    a.consumo+=its.reduce((x,r)=>x+(+r.pesoTotal||0),0); a.perda+=perdaDe(its,barraPadrao).kg; a.pecas+=its.reduce((x,r)=>x+(+r.qtd||0),0); a.envios++;
+    mp.set(k,a);
+  });
+  return mp;
+}
+function mesesDoPeriodo(mp){
+  const now=new Date(), fim=mesKey(now.getFullYear(),now.getMonth()), dias=+$("histPer").value;
+  let ini;
+  if(dias===365)ini=fim-11;
+  else if(dias){const d=new Date(desde());ini=mesKey(d.getFullYear(),d.getMonth())}
+  else ini=mp.size?Math.min(...mp.keys()):fim-11;
+  const out=[]; for(let k=Math.max(ini,fim-59);k<=fim;k++)out.push(k); return out;
+}
+let mesLinhas=[];
+const sinal=(v,d=2)=>(v>0?"+":v<0?"−":"")+fmt(Math.abs(v),d);
 
 const desde=()=>{const d=+$("histPer").value;return d?Date.now()-d*864e5:0};
 const secItem=(r,e)=>r.secao||(e.secao&&e.secao!=="Todas"?e.secao:"");
@@ -811,12 +921,32 @@ function mkChart(id,cfg,empty){
 }
 function renderHist(force){
   if(view!=="hist")return;
-  const sig=JSON.stringify(envios.map(e=>[e.numero,e.pesoTotal,e.secao,e.obs,e.enviadoPor,(e.itens||[]).length]))+histSec+$("histPer").value+isAdm()+editing+askDel+histLimit;
+  const sig=JSON.stringify(envios.map(e=>[e.numero,e.pesoTotal,e.secao,e.obs,e.enviadoPor,(e.itens||[]).length]))+histSec+$("histPer").value+barraPadrao+isAdm()+editing+askDel+histLimit;
   if(!force&&sig===lastSig)return; lastSig=sig;
   const rows=linhasHist(), envs=envFiltro(), t=somar(rows);
   $("kKg").textContent=fmt(t.kg,t.kg<100?2:0);
+  $("kComp").textContent=`kg · ${t.qtd} peças · ${fmt(t.comp/1000,1)} m`;
   $("kEnv").textContent=envs.length; $("kEnvMed").textContent=envs.length?`média ${fmt(t.kg/envs.length,1)} kg`:"nenhum envio";
-  $("kPc").textContent=t.qtd; $("kComp").textContent=`${fmt(t.comp/1000,1)} m de material`;
+  // perda no período
+  const pd=envs.reduce((a,e)=>{const p=perdaDe((e.itens||[]).filter(r=>histSec==="Todas"||secItem(r,e)===histSec),barraPadrao);return{kg:a.kg+p.kg,barras:a.barras+p.barras}},{kg:0,barras:0});
+  $("kPerda").textContent=fmt(pd.kg,pd.kg<100?2:0);
+  $("kPerdaPct").textContent=t.kg?`kg · ${fmt(pd.kg/(t.kg+pd.kg)*100,1)}% do material · ${pd.barras} barras`:"kg";
+  // série mensal e diferença
+  const mp=serieMensal(), ks=mesesDoPeriodo(mp);
+  const cons=k=>(mp.get(k)||{}).consumo||0, perd=k=>(mp.get(k)||{}).perda||0;
+  mesLinhas=ks.map(k=>{const c=cons(k),p=perd(k),ant=cons(k-1),dif=c-ant;return{k,mes:nomeMes(k),consumo:c,perda:p,perdaPct:c+p?p/(c+p)*100:0,total:c+p,dif,difPct:ant?dif/ant*100:null}});
+  const atual=mesLinhas[mesLinhas.length-1];
+  if(atual){
+    $("kDifLbl").textContent=`Diferença · ${nomeMes(atual.k,true)}`;
+    $("kDif").textContent=sinal(atual.dif,atual.dif&&Math.abs(atual.dif)<100?2:0); $("kDif").className=atual.dif>0?"up":atual.dif<0?"down":"";
+    $("kDifPct").textContent=atual.difPct==null?`kg · sem consumo em ${nomeMes(atual.k-1,true)}`:`kg · ${sinal(atual.difPct,1)}% vs ${nomeMes(atual.k-1,true)}`;
+  }
+  const arrow=v=>v>0?"▲ ":v<0?"▼ ":"";
+  $("mesTbl").innerHTML=mesLinhas.slice().reverse().map((r,i)=>`<tr${i===0?' class="atual"':""}><td>${r.mes}</td><td class="n" data-l="Consumo">${fmt(r.consumo,2)}</td><td class="n" data-l="Perda">${fmt(r.perda,2)}</td><td class="n" data-l="Perda %">${r.total?fmt(r.perdaPct,1)+"%":"–"}</td><td class="n" data-l="Total">${fmt(r.total,2)}</td>
+    <td class="n ${r.dif>0?"up":r.dif<0?"down":""}" data-l="Diferença">${r.dif?arrow(r.dif)+sinal(r.dif):"0,00"}</td><td class="n ${r.dif>0?"up":r.dif<0?"down":""}" data-l="Dif. %">${r.difPct==null?(r.consumo?"novo":"–"):sinal(r.difPct,1)+"%"}</td></tr>`).join("");
+  const tc=mesLinhas.reduce((a,r)=>a+r.consumo,0), tpd=mesLinhas.reduce((a,r)=>a+r.perda,0);
+  $("mesTot").innerHTML=`<tr><td>Total</td><td class="n" data-l="Consumo">${fmt(tc,2)}</td><td class="n" data-l="Perda">${fmt(tpd,2)}</td><td class="n" data-l="Perda %">${tc+tpd?fmt(tpd/(tc+tpd)*100,1)+"%":"–"}</td><td class="n" data-l="Total">${fmt(tc+tpd,2)}</td><td class="n" colspan="2" data-l="Média">média ${fmt(tc/(mesLinhas.length||1),2)} kg/mês</td></tr>`;
+  $("mesNota").textContent=`Perda de corte = sobra das barras de ${n0(barraPadrao)} mm usadas para cortar as peças de cada envio, por material. Diferença = consumo do mês menos o do mês anterior.`;
   const porMat=new Map(); rows.forEach(r=>{const k=curto(baseOf(r));porMat.set(k,(porMat.get(k)||0)+r.pesoTotal)});
   const top=[...porMat.entries()].sort((a,b)=>b[1]-a[1]);
   $("kTop").textContent=top[0]?top[0][0]:"–"; $("kTopKg").textContent=top[0]?fmt(top[0][1],2)+" kg":"–";
@@ -824,10 +954,13 @@ function renderHist(force){
   const mx=Math.max(...porSec), iMax=porSec.indexOf(mx);
   $("kSec").textContent=mx>0?"Seção "+SECOES[iMax]:"–"; $("kSecKg").textContent=mx>0?fmt(mx,2)+" kg":"–";
 
-  const meses=[],now=new Date(); for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);meses.push([d.getFullYear(),d.getMonth()])}
-  const kgMes=meses.map(([y,m])=>rows.filter(r=>{const d=new Date(r.data);return d.getFullYear()===y&&d.getMonth()===m}).reduce((a,r)=>a+r.pesoTotal,0));
   const ac=css("--accent"), pal=["--c1","--c2","--c3","--c4","--c5","--c6","--c7"].map(css), empty=!rows.length;
-  mkChart("chMes",{type:"bar",data:{labels:meses.map(([y,m])=>new Date(y,m,1).toLocaleDateString("pt-BR",{month:"short"}).replace(".","")),datasets:[{data:kgMes,backgroundColor:ac,borderRadius:4}]},options:{scales:{y:{beginAtZero:true}}}},empty);
+  mkChart("chMes",{type:"bar",data:{labels:mesLinhas.map(r=>nomeMes(r.k,true)),datasets:[
+      {label:"Consumo",data:mesLinhas.map(r=>r.consumo),backgroundColor:ac,stack:"m",order:2},
+      {label:"Perda de corte",data:mesLinhas.map(r=>r.perda),backgroundColor:css("--c2"),stack:"m",borderRadius:{topLeft:4,topRight:4},order:2},
+      {label:"Diferença",type:"line",data:mesLinhas.map(r=>r.dif),borderColor:css("--ink"),backgroundColor:css("--ink"),borderWidth:2,pointRadius:3,tension:0,order:1}]},
+    options:{interaction:{mode:"index",intersect:false},scales:{x:{stacked:true},y:{stacked:true}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==="Diferença"?sinal(c.raw):fmt(c.raw,2)} kg`}}}}},!mesLinhas.some(r=>r.consumo));
   mkChart("chSec",{type:"bar",data:{labels:SECOES.map(s=>"Seção "+s),datasets:[{data:porSec,backgroundColor:pal.slice(0,4),borderRadius:4}]},options:{scales:{y:{beginAtZero:true}}}},empty);
   const t8=top.slice(0,8);
   mkChart("chTop",{type:"bar",data:{labels:t8.map(x=>x[0].length>26?x[0].slice(0,25)+"…":x[0]),datasets:[{data:t8.map(x=>x[1]),backgroundColor:ac,borderRadius:4}]},options:{indexAxis:"y",scales:{x:{beginAtZero:true}}}},empty);
