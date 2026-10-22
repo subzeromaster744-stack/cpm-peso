@@ -30,7 +30,8 @@ as pessoas de cada seção (e outros administradores, se quiser).
 
 - Senhas guardadas com PBKDF2 (nunca em texto puro); login trava por 10 min após 6 erros seguidos.
 - Sessão dura 30 dias e se renova sozinha com o uso; trocar a senha ou bloquear o usuário derruba as sessões.
-- Cada pessoa pode trocar a própria senha tocando no nome/ícone de conta no topo.
+- Cada pessoa pode trocar a própria senha tocando no ícone de conta no topo.
+- Instalação como app: pelo próprio navegador (Chrome: menu ⋮ → Instalar app; iPhone: Compartilhar → Adicionar à Tela de Início).
 
 ## Permissões
 
