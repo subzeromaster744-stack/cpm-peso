@@ -491,6 +491,7 @@ body.locked .login{display:grid}
             </select>
             <button type="button" class="btn sm" id="audImp">Importar Excel</button>
             <button type="button" class="btn quiet sm" id="audXls">Baixar Excel</button>
+            <button type="button" class="btn quiet sm" id="audDelAll" style="color:var(--danger)">Excluir todas</button>
             <input type="file" id="audFile" accept=".xlsx,.xlsm,.xls" hidden>
           </div></div>
         <div class="grid2 stack">
@@ -498,6 +499,7 @@ body.locked .login{display:grid}
           <label class="f" for="audMat">Material<select id="audMat"></select></label>
         </div>
         <div class="imp" id="impBox" hidden></div>
+        <div class="confirm del" id="audDelAllBox" hidden></div>
         <div class="warn" id="audWarn" hidden></div>
         <p class="note" id="audResumo"></p>
       </section>
@@ -977,7 +979,7 @@ function resumoAud(a,prev){
 let audLinhas=[];
 function renderAud(){
   if(!auds||histModo!=="aud")return;
-  $("audDel").hidden=!auds.length;
+  $("audDel").hidden=!auds.length; $("audDelAll").hidden=!auds.length;
   const n=+$("audPer").value, lim=n?new Date(new Date().getFullYear(),new Date().getMonth()-n,new Date().getDate()):null;
   const todas=auds.map((a,k)=>resumoAud(a,auds[k-1]));
   // diferença: consumo menos o da auditoria anterior que tinha consumo
@@ -1178,6 +1180,15 @@ $("audDel").addEventListener("click",()=>{
   $("audDelOk").onclick=async()=>{try{await api("DELETE","/api/auditorias/"+a.id);$("audDelBox").hidden=true;toast("Auditoria excluída");auds=null;loadAuditorias()}catch(e){if(e.status!==401)toast("Não foi possível excluir.")}};
 });
 $("audSel").addEventListener("change",()=>{$("audDelBox").hidden=true});
+$("audDelAll").addEventListener("click",()=>{
+  if(!auds||!auds.length)return;
+  const b=$("audDelAllBox"); b.hidden=false;
+  b.innerHTML=`<p><b>Excluir todas as ${auds.length} auditorias</b> (${fmtData(auds[0].data)} a ${fmtData(auds[auds.length-1].data)}) do histórico? Os pedidos do app não são afetados. Para trazer de volta, importe a planilha de novo.<br>Digite <b>EXCLUIR</b> para confirmar.</p><input id="audDelAllTxt" autocomplete="off" style="width:130px;min-height:38px" aria-label="Digite EXCLUIR"><button type="button" class="btn danger" id="audDelAllOk" disabled>Excluir todas</button><button type="button" class="btn quiet" id="audDelAllNo">Cancelar</button>`;
+  const t=$("audDelAllTxt"), ok=$("audDelAllOk"); t.focus();
+  t.oninput=()=>{ok.disabled=t.value.trim().toUpperCase()!=="EXCLUIR"};
+  $("audDelAllNo").onclick=()=>{b.hidden=true};
+  ok.onclick=async()=>{ok.disabled=true;try{const r=await api("POST","/api/auditorias/excluir-todas",{confirmar:"EXCLUIR"});b.hidden=true;$("audDelBox").hidden=true;toast(`${r.excluidas} auditorias excluídas`);auds=null;loadAuditorias()}catch(e){ok.disabled=false;if(e.status!==401)toast("Não foi possível excluir.")}};
+});
 
 /* ===================== EXCEL MÊS A MÊS ===================== */
 $("mesXls").addEventListener("click",async()=>{

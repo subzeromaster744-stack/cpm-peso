@@ -300,6 +300,13 @@ async function api(request, env, path, method) {
     const novas = limpas.filter((d) => !existentes.has(d.id)).length;
     return json({ ok: true, novas, atualizadas: limpas.length - novas });
   }
+  // exclui todas as auditorias de uma vez (o navegador exige confirmação digitada)
+  if (path === "/api/auditorias/excluir-todas" && method === "POST") {
+    if (!admin) return fail("só o admin pode excluir auditorias", 403);
+    if (body?.confirmar !== "EXCLUIR") return fail("confirmação ausente", 400);
+    const r = await env.DB.prepare("DELETE FROM docs WHERE coll = 'auditorias'").run();
+    return json({ ok: true, excluidas: r.meta?.changes ?? 0 });
+  }
   m = path.match(/^\/api\/auditorias\/(AUD-\d{8})$/);
   if (m && method === "DELETE") {
     if (!admin) return fail("só o admin pode excluir auditorias", 403);
