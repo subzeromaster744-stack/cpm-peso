@@ -2,7 +2,7 @@
 // Página: rede primeiro (sempre a versão mais nova), com cópia para usar sem internet.
 // Ícones, fontes e bibliotecas: cache primeiro, atualizando em segundo plano.
 // /api nunca passa pelo cache.
-const VERSAO = "cpm-v14";
+const VERSAO = "cpm-v15";
 // a biblioteca do Excel (grande) entra no cache na primeira vez que for usada
 const BASE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/vendor/chart-4.4.1.min.js", "/fonts/archivo-var.woff2", "/fonts/plex-sans-400.woff2", "/fonts/plex-sans-500.woff2", "/fonts/plex-sans-600.woff2", "/fonts/plex-sans-700.woff2", "/fonts/plex-mono-500.woff2"];
 

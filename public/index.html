@@ -186,6 +186,10 @@ tbody tr[data-code]:hover td{background:var(--soft)}
 .li .nm{font-weight:600;line-height:1.3;min-width:0}
 .li .nm small{display:block;font-weight:500;color:var(--muted);font-size:13.5px}
 .li .cuts{font-family:var(--f-mono);font-size:13px;color:var(--muted);min-width:0}
+.cut{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;padding:2px;margin:2px 6px 2px 0;background:var(--panel);white-space:nowrap}
+.cut>span{padding:0 6px;color:var(--ink)}.cut b{font-weight:700}
+.cut .st{width:28px;height:28px;border-radius:50%;border:0;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.cut .st:hover{filter:brightness(.95)}.cut .st:active{transform:scale(.92)}
 .li .v{font-family:var(--f-display);font-stretch:87.5%;font-weight:600;font-size:18px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .li .v em{font-style:normal;display:none;font-family:var(--f-body);font-size:13px;color:var(--muted);font-weight:500;margin-right:4px}
 .lf{display:flex;justify-content:flex-end;align-items:baseline;gap:18px;padding:10px 4px;font-weight:700;flex-wrap:wrap}
@@ -195,11 +199,13 @@ tbody tr[data-code]:hover td{background:var(--soft)}
 @media (prefers-reduced-motion:reduce){.li.new{animation:none}}
 @media (max-width:700px){
   .lh{display:none}
-  .li,.list.ro .li{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"s nm x" "cu cu cu" "q m kg";gap:6px 10px;padding:12px 2px}
+  .li,.list.ro .li{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 36px;grid-template-areas:"s nm nm nm x" "cu cu cu cu cu" "q q m kg kg";gap:6px 10px;padding:12px 2px}
   .li .s{grid-area:s;align-self:start}.li .nm{grid-area:nm}.li .xx{grid-area:x;align-self:start;margin:-6px -6px 0 0}.li .cuts{grid-area:cu}
   .li .q{grid-area:q;text-align:left}.li .m{grid-area:m;text-align:center}.li .kg{grid-area:kg}
   .li .v em{display:inline}
-  .list.ro .li{grid-template-areas:"s nm nm" "cu cu cu" "q m kg"}
+  .list.ro .li{grid-template-areas:"s nm nm nm nm" "cu cu cu cu cu" "q q m kg kg"}
+  .cen-acoes{position:sticky;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 8px);z-index:5;background:var(--panel);padding:8px 0;margin:0 -2px;flex-wrap:nowrap}
+  .row.stack.cen-acoes>.btn{flex:1 1 auto;white-space:nowrap}.cen-acoes .full{display:none}.row.stack.cen-acoes>#btnEnviar{flex:2 1 auto}
   .lf{justify-content:space-between;gap:8px}
 }
 .empty{color:var(--muted);text-align:center;padding:26px 12px;border:1.5px dashed var(--line);border-radius:10px;margin:0}
@@ -260,7 +266,25 @@ table.det td:first-child small{display:block;font-weight:500;color:var(--muted);
   table.mes tfoot tr{border-top:2px solid var(--line);border-bottom:0}
   table.mes tfoot td{border:0}
   table.mes tfoot td[data-l="Média"]{grid-column:1/-1}
+  /* mês a mês: tabela enxuta, uma linha por mês */
+  table.mes.compacta{display:table;width:100%}
+  table.mes.compacta thead{display:table-header-group}table.mes.compacta tbody{display:table-row-group}table.mes.compacta tfoot{display:table-footer-group}
+  table.mes.compacta tr{display:table-row}
+  table.mes.compacta th,table.mes.compacta td{display:table-cell;padding:9px 4px;border-bottom:1px solid var(--line);font-size:16px;white-space:nowrap}
+  table.mes.compacta th{font-size:11.5px;white-space:normal;line-height:1.2;vertical-align:bottom}
+  table.mes.compacta td::before{display:none}
+  table.mes.compacta td.n,table.mes.compacta th.n{text-align:right}
+  table.mes.compacta td:first-child{font-size:15px}
+  table.mes.compacta th:nth-child(4),table.mes.compacta th:nth-child(5),table.mes.compacta th:nth-child(7),
+  table.mes.compacta td:nth-child(4),table.mes.compacta td:nth-child(5),table.mes.compacta tbody td:nth-child(7){display:none}
+  table.mes.compacta tfoot td{border-bottom:0}
+  table.mes.compacta tfoot td[data-l="Média"]{font-size:12.5px;white-space:normal;font-family:var(--f-body)}
+  table.mes.compacta tr.atual td{background:var(--soft)}
+  table.mes .ml{display:none}
 }
+table.mes .ms{display:none}
+@media (max-width:640px){table.mes.compacta .ms{display:inline}table.mes.compacta .ml{display:none}}
+@media (min-width:641px){table.mes .ml{display:inline}}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;min-width:0}
 .kpi span{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 .kpi b{font-family:var(--f-display);font-stretch:87.5%;font-size:30px;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
@@ -425,9 +449,9 @@ body.locked .login{display:grid}
     <div class="chips" id="cenSec"></div>
     <div id="pendentes"></div>
     <label class="f" for="obs">Observação do envio<textarea id="obs" rows="1" placeholder="Ex.: entrega até sexta"></textarea></label>
-    <div class="row stack">
-      <button type="button" class="btn" id="btnEnviar">Enviar e gerar Excel</button>
-      <button type="button" class="btn quiet" id="btnCopiar">Copiar resumo</button>
+    <div class="row stack cen-acoes">
+      <button type="button" class="btn" id="btnEnviar">Enviar<span class="full"> e gerar Excel</span></button>
+      <button type="button" class="btn quiet" id="btnCopiar">Copiar<span class="full"> resumo</span></button>
     </div>
     <div class="confirm" id="confirmBox" hidden>
       <p id="confirmMsg"></p>
@@ -465,7 +489,7 @@ body.locked .login{display:grid}
       <div class="spread"><h2>Mês a mês</h2><button type="button" class="btn quiet sm" id="mesXls">Baixar Excel</button></div>
       <div class="legend"><span><i style="background:var(--accent)"></i>Consumo</span><span><i style="background:var(--c2)"></i>Perda de corte</span><span><i class="ln"></i>Diferença do mês anterior</span></div>
       <div class="cv" style="height:250px;position:relative"><canvas id="chMes"></canvas></div>
-      <div class="tbl"><table class="mes">
+      <div class="tbl"><table class="mes compacta">
         <thead><tr><th>Mês</th><th class="n">Consumo (kg)</th><th class="n">Perda (kg)</th><th class="n">Perda %</th><th class="n">Material total (kg)</th><th class="n">Diferença (kg)</th><th class="n">Dif. %</th></tr></thead>
         <tbody id="mesTbl"></tbody><tfoot id="mesTot"></tfoot>
       </table></div>
@@ -673,11 +697,21 @@ function showView(v){
   window.scrollTo({top:0});
 }
 document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.v)));
+document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b)showView(b.dataset.go)});
 
 /* ===================== CALCULADORA ===================== */
 const st={mode:"peso",src:"cat",gi:0,code:"10032376",shape:"redonda",mat:ACO,dims:{},secao:LS.get("cpm-secao","A")};
 if(!SECOES.includes(st.secao))st.secao="A";
 Object.entries(SHAPES).forEach(([k,s])=>st.dims[k]=Object.fromEntries(s.dims.map(([d,,v])=>[d,v])));
+// volta onde a pessoa parou: modo, aço/bitola, perfil, material, medidas e comprimento
+try{const v=JSON.parse(LS.get("cpm-calc","null"));if(v){
+  if(["peso","kg"].includes(v.mode))st.mode=v.mode; if(["cat","livre"].includes(v.src))st.src=v.src;
+  if(ITEMS[v.code]){st.code=v.code;st.gi=ITEMS[v.code].gi}
+  if(SHAPES[v.shape])st.shape=v.shape; if(MATS[v.mat])st.mat=v.mat;
+  for(const k in SHAPES)for(const d in st.dims[k])if(v.dims?.[k]?.[d]>0)st.dims[k][d]=v.dims[k][d];
+  if(v.comp>0)$("comp").value=String(v.comp).replace(".",",");
+}}catch{}
+const salvarCalc=()=>LS.set("cpm-calc",JSON.stringify({mode:st.mode,src:st.src,code:st.code,shape:st.shape,mat:st.mat,dims:st.dims,comp:num($("comp").value)}));
 
 const bitolaOpts=gi=>GROUPS[gi][1].map(([c,d,D])=>`<option value="${c}">Ø ${fmt(D,2)} mm · ${curto(d).replace(/ Ø.*?mm/,"")}</option>`).join("");
 $("tipo").innerHTML=GROUPS.map(([g],i)=>`<option value="${i}">${g}</option>`).join("");
@@ -703,6 +737,7 @@ function syncUI(){
 
 let cur=null;
 function calc(){
+  salvarCalc();
   let mi,area,msg=null,base,codigo="",dimsV,shape;
   if(st.src==="cat"){const it=ITEMS[st.code];mi=it.mat;shape="redonda";dimsV={D:it.D};area=Math.PI*it.D*it.D/4;base=it.desc;codigo=it.code}
   else{shape=st.shape;const s=SHAPES[shape];dimsV=st.dims[shape];mi=st.mat;msg=s.check(dimsV);area=Math.max(0,s.area(dimsV));base=`${s.nome.toUpperCase()} ${s.txt(dimsV)}`}
@@ -776,6 +811,8 @@ $("bitola").addEventListener("change",e=>{st.code=e.target.value;calc()});
 $("mat").addEventListener("change",e=>{st.mat=+e.target.value;calc()});
 $("dims").addEventListener("input",e=>{const k=e.target.dataset.dim;if(k){st.dims[st.shape][k]=num(e.target.value);calc()}});
 ["comp","qtd","kgPeso","kgBarra"].forEach(id=>$(id).addEventListener("input",calc));
+// Enter num campo da calculadora = Adicionar à central
+$("view-calc").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.tagName==="INPUT"&&cur&&!$("btnAdd").disabled){e.preventDefault();e.target.blur();$("btnAdd").click()}});
 document.querySelectorAll("[data-step]").forEach(b=>b.addEventListener("click",()=>{$("qtd").value=Math.max(1,(Math.round(num($("qtd").value))||1)+ +b.dataset.step);calc()}));
 $("secPick").addEventListener("click",e=>{const b=e.target.closest("[data-sec]");if(b)setSecao(b.dataset.sec)});
 $("btnAdd").addEventListener("click",async()=>{
@@ -830,9 +867,9 @@ function agrupar(list){
   const m=new Map();
   list.forEach(r=>{
     const k=keyMat(r); let g=m.get(k);
-    if(!g){g={key:k,codigo:r.codigo||"",base:baseOf(r),material:r.material,secao:r.secao||"",grupo:grupoDe(r),qtd:0,pesoTotal:0,compTotal:0,cortes:new Map(),ids:[]};m.set(k,g)}
+    if(!g){g={key:k,codigo:r.codigo||"",base:baseOf(r),material:r.material,secao:r.secao||"",grupo:grupoDe(r),qtd:0,pesoTotal:0,compTotal:0,cortes:new Map(),cutId:new Map(),ids:[]};m.set(k,g)}
     g.qtd+=r.qtd; g.pesoTotal+=r.pesoTotal; g.compTotal+=(r.comprimento||0)*r.qtd; if(r.id)g.ids.push(r.id);
-    const c=r.comprimento||0; g.cortes.set(c,(g.cortes.get(c)||0)+r.qtd);
+    const c=r.comprimento||0; g.cortes.set(c,(g.cortes.get(c)||0)+r.qtd); if(r.id)g.cutId.set(c,r.id);
   });
   return [...m.values()].map(g=>({...g,pesoTotal:+g.pesoTotal.toFixed(3),
     cortesTxt:[...g.cortes.entries()].sort((a,b)=>b[0]-a[0]).map(([c,q])=>`${q} × ${c?n0(c):"?"} mm`).join(" + ")}))
@@ -846,7 +883,7 @@ function listaHTML(gs,del){
   return `<div class="list${del?"":" ro"}"><div class="lh"><span>Seç.</span><span>Material</span><span>Cortes</span><span style="text-align:right">Peças</span><span style="text-align:right">Metros</span><span style="text-align:right">Kg</span>${del?"<span></span>":""}</div>
   ${gs.map(g=>`<div class="li${g.key===flashKey?" new":""}"><span class="s"><span class="sec">${esc(g.secao||"–")}</span></span>
     <div class="nm">${esc(curto(g.base))}<small>${g.codigo?`<span class="code">${esc(g.codigo)}</span> · `:""}${esc(g.grupo)} · ${esc(g.material)}</small></div>
-    <div class="cuts">${esc(g.cortesTxt)}</div>
+    <div class="cuts">${del?[...g.cortes.entries()].sort((a,b)=>b[0]-a[0]).map(([c,q])=>{const id=esc(g.cutId.get(c)||"");return `<span class="cut"><button type="button" class="st" data-cut="-1" data-id="${id}" aria-label="Uma peça a menos de ${c?n0(c):"?"} mm">−</button><span><b>${q}</b> × ${c?n0(c):"?"} mm</span><button type="button" class="st" data-cut="1" data-id="${id}" aria-label="Uma peça a mais de ${c?n0(c):"?"} mm">+</button></span>`}).join(""):esc(g.cortesTxt)}</div>
     <div class="v q"><em>Peças</em>${g.qtd}</div><div class="v m"><em>Metros</em>${fmt(g.compTotal/1000,2)}</div><div class="v kg"><em>Kg</em>${fmt(g.pesoTotal,2)}</div>
     ${del?`<span class="xx"><button type="button" class="x" data-del="${esc(g.ids.join(","))}" aria-label="Remover ${esc(curto(g.base))}">×</button></span>`:""}</div>`).join("")}
   <div class="lf"><span>${gs.length} ${gs.length===1?"material":"materiais"}</span><span>${t.qtd} peças</span><span>${fmt(t.comp/1000,2)} m</span><b>${fmt(t.kg,2)} kg</b></div></div>`;
@@ -856,10 +893,23 @@ function renderPend(){
   const n=agrupar(pend).length; $("count").textContent=n||""; $("count").dataset.n=n;
   const gs=agrupar(pendFiltro());
   $("pendentes").innerHTML=gs.length?listaHTML(gs,true)
-    :`<p class="empty">${cenSec==="Todas"?"Nenhum item aguardando envio.":"Nenhum item da Seção "+cenSec+"."}<br>Use a calculadora e toque em “Adicionar à central”.</p>`;
+    :`<p class="empty">${cenSec==="Todas"?"Nenhum item aguardando envio.":"Nenhum item da Seção "+cenSec+"."}<br>Use a calculadora e toque em “Adicionar à central”.</p><p style="text-align:center;margin:0 0 8px"><button type="button" class="btn quiet sm" data-go="calc">Ir para Calcular</button></p>`;
   $("btnCopiar").disabled=!gs.length;
-  $("btnEnviar").textContent=cenSec==="Todas"?"Enviar e gerar Excel":`Enviar Seção ${cenSec} e gerar Excel`;
+  $("btnEnviar").innerHTML=(cenSec==="Todas"?"Enviar":`Enviar Seção ${cenSec}`)+'<span class="full"> e gerar Excel</span>';
 }
+let qtdFila=Promise.resolve();
+$("pendentes").addEventListener("click",e=>{
+  const b=e.target.closest("[data-cut]"); if(!b)return;
+  const r=pend.find(x=>x.id===b.dataset.id); if(!r)return;
+  const qtd=r.qtd+ +b.dataset.cut;
+  if(qtd<1){ // última peça daquele corte: remove o corte
+    pend=pend.filter(x=>x!==r); renderPend();
+    qtdFila=qtdFila.then(()=>api("POST","/api/coleta/remover",{ids:[r.id]})).then(()=>toast("Corte removido"),()=>{toast("Não foi possível alterar.");loadColeta()});
+    return;
+  }
+  r.qtd=qtd; r.pesoTotal=+(r.pesoPeca*qtd).toFixed(3); renderPend();
+  qtdFila=qtdFila.then(()=>api("PATCH","/api/coleta/"+r.id,{qtd,pesoTotal:r.pesoTotal})).catch(()=>{toast("Não foi possível alterar.");loadColeta()});
+});
 $("pendentes").addEventListener("click",async e=>{
   const b=e.target.closest("[data-del]"); if(!b)return; b.disabled=true;
   try{await api("POST","/api/coleta/remover",{ids:b.dataset.del.split(",")});await loadColeta();toast("Item removido")}
@@ -1219,10 +1269,10 @@ $("mesXls").addEventListener("click",async()=>{
 });
 
 /* ===================== HISTÓRICO ===================== */
-let histLimit=20, histSec="Todas", charts={}, lastSig="", editing=null, askDel=null, openEnv=new Set(), chartWait=0;
-const drawHistSec=()=>chipsSec($("histSec"),histSec,s=>{histSec=s;histLimit=20;drawHistSec();renderHist(true)});
+let histLimit=10, histSec="Todas", charts={}, lastSig="", editing=null, askDel=null, openEnv=new Set(), chartWait=0;
+const drawHistSec=()=>chipsSec($("histSec"),histSec,s=>{histSec=s;histLimit=10;drawHistSec();renderHist(true)});
 drawHistSec();
-$("histPer").addEventListener("change",()=>{histLimit=20;renderHist(true)});
+$("histPer").addEventListener("change",()=>{histLimit=10;renderHist(true)});
 
 /* barra padrão para calcular a sobra de corte */
 let barraPadrao=num(LS.get("cpm-barra","6000"))||6000;
@@ -1369,7 +1419,7 @@ function renderHist(force){
     $("kDifPct").textContent=atual.difPct==null?`kg · sem consumo em ${nomeMes(atual.k-1,true)}`:`kg · ${sinal(atual.difPct,1)}% vs ${nomeMes(atual.k-1,true)}`;
   }
   const arrow=v=>v>0?"▲ ":v<0?"▼ ":"";
-  $("mesTbl").innerHTML=mesLinhas.slice().reverse().map((r,i)=>`<tr${i===0?' class="atual"':""}><td>${r.mes}</td><td class="n" data-l="Consumo">${fmt(r.consumo,2)}</td><td class="n" data-l="Perda">${fmt(r.perda,2)}</td><td class="n" data-l="Perda %">${r.total?fmt(r.perdaPct,1)+"%":"–"}</td><td class="n" data-l="Total">${fmt(r.total,2)}</td>
+  $("mesTbl").innerHTML=mesLinhas.slice().reverse().map((r,i)=>`<tr${i===0?' class="atual"':""}><td><span class="ml">${r.mes}</span><span class="ms">${nomeMes(r.k,true)}/${String(Math.floor(r.k/12)).slice(-2)}</span></td><td class="n" data-l="Consumo">${fmt(r.consumo,2)}</td><td class="n" data-l="Perda">${fmt(r.perda,2)}</td><td class="n" data-l="Perda %">${r.total?fmt(r.perdaPct,1)+"%":"–"}</td><td class="n" data-l="Total">${fmt(r.total,2)}</td>
     <td class="n ${r.dif>0?"up":r.dif<0?"down":""}" data-l="Diferença">${r.dif?arrow(r.dif)+sinal(r.dif):"0,00"}</td><td class="n ${r.dif>0?"up":r.dif<0?"down":""}" data-l="Dif. %">${r.difPct==null?(r.consumo?"novo":"–"):sinal(r.difPct,1)+"%"}</td></tr>`).join("");
   const tc=mesLinhas.reduce((a,r)=>a+r.consumo,0), tpd=mesLinhas.reduce((a,r)=>a+r.perda,0);
   $("mesTot").innerHTML=`<tr><td>Total</td><td class="n" data-l="Consumo">${fmt(tc,2)}</td><td class="n" data-l="Perda">${fmt(tpd,2)}</td><td class="n" data-l="Perda %">${tc+tpd?fmt(tpd/(tc+tpd)*100,1)+"%":"–"}</td><td class="n" data-l="Total">${fmt(tc+tpd,2)}</td><td class="n" colspan="2" data-l="Média">média ${fmt(tc/(mesLinhas.length||1),2)} kg/mês</td></tr>`;
@@ -1391,7 +1441,7 @@ function renderHist(force){
         tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset.label==="Diferença"?sinal(c.raw):fmt(c.raw,2)} kg`}}}}},!mesLinhas.some(r=>r.consumo));
   mkChart("chSec",{type:"bar",data:{labels:SECOES.map(s=>"Seção "+s),datasets:[{data:porSec,backgroundColor:pal.slice(0,4),borderRadius:4}]},options:{scales:{y:{beginAtZero:true}}}},empty);
   const t8=top.slice(0,8);
-  mkChart("chTop",{type:"bar",data:{labels:t8.map(x=>x[0].length>26?x[0].slice(0,25)+"…":x[0]),datasets:[{data:t8.map(x=>x[1]),backgroundColor:ac,borderRadius:4}]},options:{indexAxis:"y",scales:{x:{beginAtZero:true}}}},empty);
+  mkChart("chTop",{type:"bar",data:{labels:t8.map(x=>{const n=innerWidth<560?17:26;return x[0].length>n?x[0].slice(0,n-1)+"…":x[0]}),datasets:[{data:t8.map(x=>x[1]),backgroundColor:ac,borderRadius:4}]},options:{indexAxis:"y",scales:{x:{beginAtZero:true}}}},empty);
   const porTipo=new Map(); rows.forEach(r=>{const g=grupoDe(r);porTipo.set(g,(porTipo.get(g)||0)+r.pesoTotal)});
   const tp=[...porTipo.entries()].sort((a,b)=>b[1]-a[1]);
   mkChart("chTipo",{type:"doughnut",data:{labels:tp.map(x=>x[0]),datasets:[{data:tp.map(x=>x[1]),backgroundColor:tp.map((_,i)=>pal[i%pal.length]),borderColor:css("--panel"),borderWidth:2}]},
@@ -1425,7 +1475,7 @@ function envioHTML(e){
   }
   const sec=e.secao&&e.secao!=="Todas"?`<span class="sec">${esc(e.secao)}</span>`:`<span class="sec" title="Todas as seções">✱</span>`;
   return `<details class="envio" data-n="${esc(e.numero)}"${open?" open":""}><summary>${sec}
-    <div style="min-width:0"><div class="t">${esc(e.numero)}</div><div class="d">${new Date(e.enviadoEm).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} · ${(n=>n+(n===1?" material":" materiais"))(e.qtdItens??gs.length)}${e.enviadoPor?" · "+esc(e.enviadoPor):""}</div></div>
+    <div style="min-width:0"><div class="t">${esc(e.numero)}</div><div class="d">${new Date(e.enviadoEm).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})} · ${(n=>n+(n===1?" material":" materiais"))(e.qtdItens??gs.length)}${e.enviadoPor?" · "+esc(e.enviadoPor):""}</div></div>
     <div class="w">${fmt(e.pesoTotal,2)} kg</div></summary><div class="body">${body}</div></details>`;
 }
 $("historico").addEventListener("toggle",e=>{const d=e.target;if(d.matches&&d.matches("details.envio")){d.open?openEnv.add(d.dataset.n):openEnv.delete(d.dataset.n)}},true);
