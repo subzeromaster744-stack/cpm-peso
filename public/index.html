@@ -225,7 +225,7 @@ label.f.inline{flex-direction:row;align-items:center;gap:8px}
 .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
 .legend i.ln{height:3px;border-radius:2px;background:var(--ink)}
 table.mes td,table.mes th{white-space:nowrap}
-@media (min-width:641px){table.mes th,table.mes td{padding:8px 7px}}
+@media (min-width:641px){table.mes th,table.mes td{padding:8px 7px}table.mes th{white-space:normal;vertical-align:bottom;line-height:1.25}}
 table.mes td{font-variant-numeric:tabular-nums}
 table.mes td:first-child{font-weight:600}
 table.mes .up{color:var(--c2)}table.mes .down{color:var(--ok)}
@@ -506,18 +506,18 @@ body.locked .login{display:grid}
         <div class="kpi"><span>Valor do estoque (R$)</span><b id="aKVal">–</b><small id="aKValSub">–</small></div>
         <div class="kpi"><span id="aKConLbl">Consumo</span><b id="aKCon">–</b><small id="aKConSub">–</small></div>
         <div class="kpi"><span>Perda estimada</span><b id="aKPer">–</b><small id="aKPerSub">–</small></div>
-        <div class="kpi"><span>Diferença</span><b id="aKDif">–</b><small id="aKDifSub">–</small></div>
-        <div class="kpi"><span id="aKSapLbl">Físico − SAP</span><b id="aKSap">–</b><small id="aKSapSub">–</small></div>
+        <div class="kpi"><span id="aKSapLbl">Diferença (físico − SAP)</span><b id="aKSap">–</b><small id="aKSapSub">–</small></div>
+        <div class="kpi"><span>Variação do consumo</span><b id="aKDif">–</b><small id="aKDifSub">–</small></div>
       </div>
       <section class="card">
         <h2>Consumo e perda por auditoria</h2>
-        <div class="legend"><span><i style="background:var(--accent)"></i>Consumo</span><span><i style="background:var(--c2)"></i>Perda estimada</span><span><i class="ln"></i>Diferença da auditoria anterior</span></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Consumo</span><span><i style="background:var(--c2)"></i>Perda estimada</span><span><i class="ln"></i>Diferença (físico − SAP)</span></div>
         <div class="cv" style="height:260px;position:relative"><canvas id="chAud"></canvas></div>
         <div class="tbl"><table class="mes">
-          <thead><tr><th>Auditoria</th><th class="n">Consumo (kg)</th><th class="n">kg/dia</th><th class="n">Perda %</th><th class="n">Perda (kg)</th><th class="n">Diferença (kg)</th><th class="n">Estoque (kg)</th><th class="n">SAP (kg)</th><th class="n">Físico − SAP (kg)</th><th class="n">Valor (R$)</th></tr></thead>
+          <thead><tr><th>Auditoria</th><th class="n">Físico (kg)</th><th class="n">SAP (kg)</th><th class="n">Diferença (kg)</th><th class="n">R$ da diferença</th><th class="n">Consumo (kg)</th><th class="n">Var. consumo (kg)</th><th class="n">Perda %</th><th class="n">Perda (kg)</th><th class="n">kg/dia</th></tr></thead>
           <tbody id="audTbl"></tbody><tfoot id="audTot"></tfoot>
         </table></div>
-        <p class="note">Perda estimada = consumo × % de perda de cada material. kg/dia = consumo dividido pelos dias desde a auditoria anterior. Diferença = consumo da auditoria menos o da anterior. Físico − SAP = estoque contado menos o estoque do sistema (positivo: sobra no físico; negativo: falta).</p>
+        <p class="note">Perda estimada = consumo × % de perda de cada material. kg/dia = consumo dividido pelos dias desde a auditoria anterior. Diferença = estoque físico menos o estoque do SAP (positivo: sobra no físico; negativo: falta); materiais sem SAP na planilha ficam fora da conta (⚠). Variação do consumo = consumo da auditoria menos o da anterior.</p>
       </section>
       <section class="card">
         <h2>Estoque físico e valor</h2>
@@ -529,12 +529,12 @@ body.locked .login{display:grid}
           <div class="row">
             <select id="audSel" style="width:auto;min-height:38px" aria-label="Auditoria"></select>
             <select id="audOrd" style="width:auto;min-height:38px" aria-label="Ordenar">
-              <option value="consumo">Maior consumo</option><option value="fisico">Maior estoque</option><option value="valor">Maior valor</option><option value="perda">Maior % perda</option><option value="difSapAbs">Maior diferença com SAP</option><option value="codigo">Código</option>
+              <option value="consumo">Maior consumo</option><option value="fisico">Maior estoque</option><option value="valor">Maior valor</option><option value="perda">Maior % perda</option><option value="difSapAbs">Maior diferença (R$)</option><option value="codigo">Código</option>
             </select>
             <button type="button" class="btn quiet sm" id="audDel" style="color:var(--danger)">Excluir auditoria</button></div></div>
         <div class="confirm del" id="audDelBox" hidden></div>
         <div class="tbl"><table class="mes det">
-          <thead><tr><th>Material</th><th class="n">Estoque (kg)</th><th class="n">SAP (kg)</th><th class="n">Físico − SAP</th><th class="n">R$ da dif.</th><th class="n">R$/kg</th><th class="n">Valor (R$)</th><th class="n">Consumo (kg)</th><th class="n">Perda %</th><th class="n">Proposto %</th><th>Obs.</th></tr></thead>
+          <thead><tr><th>Material</th><th class="n">Estoque (kg)</th><th class="n">SAP (kg)</th><th class="n">Diferença (kg)</th><th class="n">R$ da diferença</th><th class="n">R$/kg</th><th class="n">Valor (R$)</th><th class="n">Consumo (kg)</th><th class="n">Perda %</th><th class="n">Proposto %</th><th>Obs.</th></tr></thead>
           <tbody id="audDet"></tbody><tfoot id="audDetTot"></tfoot>
         </table></div>
       </section>
@@ -970,8 +970,9 @@ function resumoAud(a,prev){
   const sap=comSap.length?comSap.reduce((x,i)=>x+i.sap,0):null;
   const difSap=comSap.length?comSap.reduce((x,i)=>x+(i.fisico||0)-i.sap,0):null;
   const difSapR=comSap.length?comSap.reduce((x,i)=>x+((i.fisico||0)-i.sap)*(i.valorKg||0),0):null;
+  const semSap=comSap.length?its.filter(i=>i.sap==null&&(i.fisico||0)>0):[];
   const dias=prev?Math.round((dataBR(a.data)-dataBR(prev.data))/864e5):null;
-  return {a,consumo,perdaKg,perdaPct:consumo>0?perdaKg/consumo*100:null,fisico,valor,sap,difSap,difSapR,dias,kgDia:consumo!=null&&dias?consumo/dias:null,anom:its.some(i=>anom(a,i))};
+  return {a,consumo,perdaKg,perdaPct:consumo>0?perdaKg/consumo*100:null,fisico,valor,sap,difSap,difSapR,semSap,dias,kgDia:consumo!=null&&dias?consumo/dias:null,anom:its.some(i=>anom(a,i))};
 }
 let audLinhas=[];
 function renderAud(){
@@ -1000,35 +1001,36 @@ function renderAud(){
     $("aKCon").textContent=fmt(ultC.consumo,0); $("aKConSub").textContent=`kg${ultC.kgDia!=null?` · ${fmt(ultC.kgDia,0)} kg/dia`:""}${ultC.a.periodoConsumo?" · "+ultC.a.periodoConsumo:""}`;
     $("aKPer").textContent=fmt(ultC.perdaKg,0); $("aKPerSub").textContent=ultC.perdaPct!=null?`kg · ${fmt(ultC.perdaPct,1)}% do consumo`:"kg";
     $("aKDif").textContent=ultC.dif!=null?sinal(ultC.dif,0):"–"; $("aKDif").className=ultC.dif>0?"up":ultC.dif<0?"down":"";
-    $("aKDifSub").textContent=ultC.difPct!=null?`kg · ${sinal(ultC.difPct,1)}% vs auditoria anterior`:"kg";
+    $("aKDifSub").textContent=ultC.difPct!=null?`kg · ${sinal(ultC.difPct,1)}% vs auditoria anterior`:"kg vs auditoria anterior";
   }
   const comC=audLinhas.filter(r=>r.consumo!=null);
   const ultS=[...audLinhas].reverse().find(r=>r.sap!=null);
   if(ultS){
-    $("aKSapLbl").textContent=`Físico − SAP · ${fmtData(ultS.a.data)}`;
+    $("aKSapLbl").textContent=`Diferença · ${fmtData(ultS.a.data)}`;
     $("aKSap").textContent=sinal(ultS.difSap,0); $("aKSap").className=ultS.difSap<0?"up":ultS.difSap>0?"down":"";
-    $("aKSapSub").textContent=`kg · ${(ultS.difSapR<0?"−":"+")+fmtR$(Math.abs(ultS.difSapR))} · SAP ${fmt(ultS.sap,0)} kg`;
-  }else{$("aKSapLbl").textContent="Físico − SAP";$("aKSap").textContent="–";$("aKSap").className="";$("aKSapSub").textContent="importe a planilha para trazer o SAP"}
+    $("aKSapSub").textContent=`kg (físico − SAP) · ${(ultS.difSapR<0?"−":"+")+fmtR$(Math.abs(ultS.difSapR))}`+(ultS.semSap.length?` · sem SAP em ${ultS.semSap.length} material(is)`:` · físico ${fmt(ultS.fisico,0)} − SAP ${fmt(ultS.sap,0)}`);
+  }else{$("aKSapLbl").textContent="Diferença (físico − SAP)";$("aKSap").textContent="–";$("aKSap").className="";$("aKSapSub").textContent="importe a planilha para trazer o SAP"}
   $("audResumo").textContent=audLinhas.length?`${audLinhas.length} auditorias de ${fmtData(audLinhas[0].a.data)} a ${fmtData(ult.a.data)}${auds.some(a=>a.itens.some(i=>i.sap!=null))?"":" · ainda sem dados do SAP"}.`:"Nenhuma auditoria no período. Use “Importar Excel” para trazer a planilha de auditoria.";
 
-  const arrow=v=>v>0?"▲ ":v<0?"▼ ":"", cls=v=>v>0?"up":v<0?"down":"";
+  const arrow=v=>v>0?"▲ ":v<0?"▼ ":"", cls=v=>v>0?"up":v<0?"down":"", clsS=v=>v<0?"up":v>0?"down":"";
   $("audTbl").innerHTML=audLinhas.slice().reverse().map((r,k)=>`<tr${k===0?' class="atual"':""}><td>${fmtData(r.a.data)}${r.anom?' <span class="flag" title="Contém valor fora do padrão">⚠</span>':""}${r.a.periodoConsumo?`<small class="muted" style="display:block;font-weight:500;font-size:13px">${esc(r.a.periodoConsumo)}</small>`:""}</td>
-    <td class="n" data-l="Consumo">${r.consumo!=null?fmt(r.consumo,0):"–"}</td><td class="n" data-l="kg/dia">${r.kgDia!=null?fmt(r.kgDia,0):"–"}</td>
+    <td class="n" data-l="Físico">${fmt(r.fisico,0)}</td><td class="n" data-l="SAP">${r.sap!=null?fmt(r.sap,0):"–"}${r.semSap&&r.semSap.length?` <span class="flag" title="SAP faltando em ${r.semSap.map(i=>i.codigo).join(", ")}: esse material ficou fora da diferença">⚠</span>`:""}</td>
+    <td class="n ${clsS(r.difSap)}" data-l="Diferença"><b>${r.difSap!=null?sinal(r.difSap,0):"–"}</b></td><td class="n ${clsS(r.difSapR)}" data-l="R$ da diferença">${r.difSapR!=null?sinal(r.difSapR,0):"–"}</td>
+    <td class="n" data-l="Consumo">${r.consumo!=null?fmt(r.consumo,0):"–"}</td>
+    <td class="n ${cls(r.dif)}" data-l="Var. consumo">${r.dif!=null?arrow(r.dif)+sinal(r.dif,0)+(r.difPct!=null?`<small style="display:block;font-size:12px">${sinal(r.difPct,0)}%</small>`:""):"–"}</td>
     <td class="n" data-l="Perda %">${r.perdaPct!=null?fmt(r.perdaPct,1)+"%":"–"}</td><td class="n" data-l="Perda">${r.perdaKg!=null?fmt(r.perdaKg,0):"–"}</td>
-    <td class="n ${cls(r.dif)}" data-l="Diferença">${r.dif!=null?arrow(r.dif)+sinal(r.dif,0)+(r.difPct!=null?` <small>(${sinal(r.difPct,0)}%)</small>`:""):"–"}</td>
-    <td class="n" data-l="Estoque">${fmt(r.fisico,0)}</td><td class="n" data-l="SAP">${r.sap!=null?fmt(r.sap,0):"–"}</td>
-    <td class="n ${r.difSap<0?"up":r.difSap>0?"down":""}" data-l="Físico − SAP">${r.difSap!=null?sinal(r.difSap,0):"–"}</td><td class="n" data-l="Valor R$">${fmt(r.valor,0)}</td></tr>`).join("")||'<tr><td colspan="10" class="muted">Nenhuma auditoria no período.</td></tr>';
+    <td class="n" data-l="kg/dia">${r.kgDia!=null?fmt(r.kgDia,0):"–"}</td></tr>`).join("")||'<tr><td colspan="10" class="muted">Nenhuma auditoria no período.</td></tr>';
   const tc=comC.reduce((x,r)=>x+r.consumo,0), tp=comC.reduce((x,r)=>x+r.perdaKg,0);
-  $("audTot").innerHTML=comC.length?`<tr><td>Total</td><td class="n" data-l="Consumo">${fmt(tc,0)}</td><td class="n" data-l="kg/dia"></td><td class="n" data-l="Perda %">${tc?fmt(tp/tc*100,1)+"%":"–"}</td><td class="n" data-l="Perda">${fmt(tp,0)}</td><td class="n" colspan="5" data-l="Média">média ${fmt(tc/comC.length,0)} kg por auditoria</td></tr>`:"";
+  $("audTot").innerHTML=comC.length?`<tr><td>Total</td><td colspan="4" data-l="Média">consumo médio de ${fmt(tc/comC.length,0)} kg por auditoria</td><td class="n" data-l="Consumo">${fmt(tc,0)}</td><td></td><td class="n" data-l="Perda %">${tc?fmt(tp/tc*100,1)+"%":"–"}</td><td class="n" data-l="Perda">${fmt(tp,0)}</td><td></td></tr>`:"";
 
   const lbl=audLinhas.map(r=>dataBR(r.a.data).toLocaleDateString("pt-BR",{month:"short",year:"2-digit"}).replace(". de ","/").replace(".",""));
   mkChart("chAud",{type:"bar",data:{labels:lbl,datasets:[
       {label:"Consumo",data:audLinhas.map(r=>r.consumo),backgroundColor:css("--accent"),stack:"a",order:2},
       {label:"Perda estimada",data:audLinhas.map(r=>r.perdaKg),backgroundColor:css("--c2"),stack:"a",borderRadius:{topLeft:4,topRight:4},order:2},
-      {label:"Diferença",type:"line",data:audLinhas.map(r=>r.dif),borderColor:css("--ink"),backgroundColor:css("--ink"),borderWidth:2,pointRadius:3,spanGaps:true,order:1}]},
+      {label:"Diferença (físico − SAP)",type:"line",data:audLinhas.map(r=>r.difSap),borderColor:css("--ink"),backgroundColor:css("--ink"),borderWidth:2,pointRadius:3,spanGaps:true,order:1}]},
     options:{interaction:{mode:"index",intersect:false},scales:{x:{stacked:true},y:{stacked:true,suggestedMax:Math.max(0,...audLinhas.map(r=>(r.consumo||0)+(r.perdaKg||0)))*(audLinhas.length>14?1.45:1.18)}},layout:{padding:{top:6}},
-      plugins:{legend:{display:false},rotulos:{pilha:[0,1],linha:2,valor:j=>audLinhas[j]&&audLinhas[j].consumo},
-        tooltip:{callbacks:{title:it=>fmtData(audLinhas[it[0].dataIndex].a.data),label:c=>c.raw==null?` ${c.dataset.label}: sem dado`:` ${c.dataset.label}: ${c.dataset.label==="Diferença"?sinal(c.raw,0):fmt(c.raw,0)} kg`}}}}},!comC.length);
+      plugins:{legend:{display:false},rotulos:{pilha:[0,1],linha:2,inverte:true,valor:j=>audLinhas[j]&&audLinhas[j].consumo},
+        tooltip:{callbacks:{title:it=>fmtData(audLinhas[it[0].dataIndex].a.data),label:c=>c.raw==null?` ${c.dataset.label}: sem dado`:` ${c.dataset.label}: ${c.dataset.type==="line"?sinal(c.raw,0):fmt(c.raw,0)} kg`}}}}},!comC.length&&!audLinhas.some(r=>r.difSap!=null));
   mkChart("chAudEst",{type:"line",data:{labels:lbl,datasets:[
       {label:"Estoque físico",data:audLinhas.map(r=>r.fisico),borderColor:css("--c3"),backgroundColor:css("--c3"),borderWidth:2,pointRadius:3,yAxisID:"y"},
       {label:"SAP",data:audLinhas.map(r=>r.sap),borderColor:css("--muted"),backgroundColor:css("--muted"),borderWidth:2,pointRadius:2,borderDash:[2,3],spanGaps:true,yAxisID:"y"},
@@ -1049,25 +1051,25 @@ function renderAudDet(){
   const pct=v=>v==null?"–":fmt(v*100,1)+"%";
   $("audDet").innerHTML=its.map(i=>`<tr><td>${esc(descCod(i.codigo))}<small><span class="code">${i.codigo}</span> · ${esc(grupoCod(i.codigo))}</small></td>
     <td class="n" data-l="Estoque">${i.fisico!=null?fmt(i.fisico,0):"–"}</td><td class="n" data-l="SAP">${i.sap!=null?fmt(i.sap,0):"–"}</td>
-    <td class="n ${i.difSap<0?"up":i.difSap>0?"down":""}" data-l="Físico − SAP">${i.difSap!=null?sinal(i.difSap,0):"–"}</td><td class="n ${i.difSapR<0?"up":i.difSapR>0?"down":""}" data-l="R$ da dif.">${i.difSapR!=null?sinal(i.difSapR,0):"–"}</td><td class="n" data-l="R$/kg">${i.valorKg!=null?fmt(i.valorKg,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(i.valor,0)}</td>
+    <td class="n ${i.difSap<0?"up":i.difSap>0?"down":""}" data-l="Diferença"><b>${i.difSap!=null?sinal(i.difSap,0):"–"}</b></td><td class="n ${i.difSapR<0?"up":i.difSapR>0?"down":""}" data-l="R$ da diferença">${i.difSapR!=null?sinal(i.difSapR,0):"–"}</td><td class="n" data-l="R$/kg">${i.valorKg!=null?fmt(i.valorKg,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(i.valor,0)}</td>
     <td class="n" data-l="Consumo">${i.consumo!=null?fmt(i.consumo,0)+(anom(a,i)?' <span class="flag" title="Fora do padrão">⚠</span>':""):"–"}</td>
     <td class="n" data-l="Perda %">${pct(i.perda)}</td><td class="n" data-l="Proposto %">${pct(i.proposto)}</td>
     <td class="obs" data-l="Obs.">${esc([i.propostoObs,i.obs,i.sobrasObs].filter(Boolean).join(" · "))}${i.sobras!=null?` <span class="muted">sobras ${fmt(i.sobras*100,1)}%</span>`:""}</td></tr>`).join("")||'<tr><td colspan="11" class="muted">Nenhum material neste filtro.</td></tr>';
   const tf=its.reduce((x,i)=>x+(i.fisico||0),0), tv=its.reduce((x,i)=>x+i.valor,0), tc=its.reduce((x,i)=>x+(i.consumo||0),0);
   const cs=its.filter(i=>i.sap!=null), ts=cs.reduce((x,i)=>x+i.sap,0), td=cs.reduce((x,i)=>x+i.difSap,0), tdr=cs.reduce((x,i)=>x+i.difSapR,0);
   $("audDetTot").innerHTML=its.length?`<tr><td>${its.length} materiais · ${fmtData(a.data)}</td><td class="n" data-l="Estoque">${fmt(tf,0)}</td>
-    <td class="n" data-l="SAP">${cs.length?fmt(ts,0):"–"}</td><td class="n" data-l="Físico − SAP">${cs.length?sinal(td,0):"–"}</td><td class="n" data-l="R$ da dif.">${cs.length?sinal(tdr,0):"–"}</td><td class="n" data-l="R$/kg">${tf?fmt(tv/tf,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(tv,0)}</td><td class="n" data-l="Consumo">${fmt(tc,0)}</td><td colspan="3"></td></tr>`:"";
+    <td class="n" data-l="SAP">${cs.length?fmt(ts,0):"–"}</td><td class="n" data-l="Diferença">${cs.length?sinal(td,0):"–"}</td><td class="n" data-l="R$ da diferença">${cs.length?sinal(tdr,0):"–"}</td><td class="n" data-l="R$/kg">${tf?fmt(tv/tf,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(tv,0)}</td><td class="n" data-l="Consumo">${fmt(tc,0)}</td><td colspan="3"></td></tr>`:"";
 }
 $("audXls").addEventListener("click",async()=>{
   try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel.");return}
   const filtro=[$("audGrupo").value||"Todos os tipos",$("audMat").value?descCod($("audMat").value):"Todos os materiais"].join(" · ");
   const s1=[["CPM · Auditorias de estoque"],["Filtro",filtro],["Gerado em",new Date().toLocaleString("pt-BR")],[],
-    ["Auditoria","Período do consumo","Consumo (kg)","Dias","kg/dia","Perda %","Perda estimada (kg)","Diferença (kg)","Estoque físico (kg)","SAP (kg)","Físico − SAP (kg)","R$ da diferença","Valor do estoque (R$)","Fora do padrão"]];
+    ["Auditoria","Período do consumo","Consumo (kg)","Dias","kg/dia","Perda %","Perda estimada (kg)","Variação do consumo (kg)","Estoque físico (kg)","SAP (kg)","Diferença físico − SAP (kg)","R$ da diferença","Valor do estoque (R$)","Fora do padrão"]];
   audLinhas.forEach(r=>s1.push([serialXL(r.a.data),r.a.periodoConsumo||"",r.consumo??"",r.dias??"",r.kgDia!=null?+r.kgDia.toFixed(1):"",r.perdaPct!=null?+(r.perdaPct/100).toFixed(4):"",r.perdaKg!=null?+r.perdaKg.toFixed(1):"",r.dif!=null?+r.dif.toFixed(1):"",+r.fisico.toFixed(1),r.sap!=null?+r.sap.toFixed(1):"",r.difSap!=null?+r.difSap.toFixed(1):"",r.difSapR!=null?+r.difSapR.toFixed(2):"",+r.valor.toFixed(2),r.anom?"sim":""]));
   const ws1=XLSX.utils.aoa_to_sheet(s1);
   ws1["!cols"]=[{wch:12},{wch:24},{wch:13},{wch:6},{wch:9},{wch:8},{wch:18},{wch:14},{wch:17},{wch:12},{wch:16},{wch:15},{wch:19},{wch:13}];
   for(let r=6;r<=s1.length;r++){const c=ws1["A"+r];if(c&&typeof c.v==="number")c.z="dd/mm/yyyy";["C","E","G","H","I","J","K"].forEach(k=>{if(ws1[k+r])ws1[k+r].z="#,##0"});if(ws1["F"+r])ws1["F"+r].z="0.0%";["L","M"].forEach(k=>{if(ws1[k+r])ws1[k+r].z='"R$" #,##0.00'})}
-  const s2=[["Auditoria","Código","Material","Tipo","Estoque físico (kg)","SAP (kg)","Físico − SAP (kg)","R$/kg","Valor (R$)","Consumo (kg)","Perda %","Proposto %","Sobras %","Observação"]];
+  const s2=[["Auditoria","Código","Material","Tipo","Estoque físico (kg)","SAP (kg)","Diferença físico − SAP (kg)","R$/kg","Valor (R$)","Consumo (kg)","Perda %","Proposto %","Sobras %","Observação"]];
   audLinhas.forEach(r=>itensFiltrados(r.a).forEach(i=>s2.push([serialXL(r.a.data),i.codigo,descCod(i.codigo),grupoCod(i.codigo),i.fisico??"",i.sap??"",i.sap!=null?+((i.fisico||0)-i.sap).toFixed(3):"",i.valorKg??"",i.fisico!=null&&i.valorKg!=null?+(i.fisico*i.valorKg).toFixed(2):"",i.consumo??"",i.perda??"",i.proposto??"",i.sobras??"",[i.propostoObs,i.obs,i.sobrasObs,anom(r.a,i)?"consumo fora do padrão":""].filter(Boolean).join(" · ")])));
   const ws2=XLSX.utils.aoa_to_sheet(s2);
   ws2["!cols"]=[{wch:12},{wch:10},{wch:32},{wch:24},{wch:17},{wch:12},{wch:16},{wch:8},{wch:13},{wch:13},{wch:8},{wch:10},{wch:9},{wch:30}];
@@ -1300,7 +1302,7 @@ const rotulos={id:"rotulos",afterDatasetsDraw(ch){
   }
   difs.forEach(d=>{ctx.font=`600 12px ${fam}`;ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillStyle=panel;ctx.globalAlpha=.9;ctx.fillRect(d.x-d.w/2,d.y-9,d.w,18);ctx.globalAlpha=1;
-    ctx.fillStyle=d.v>0?css("--c2"):css("--ok");ctx.fillText(d.t,d.x,d.y)});
+    ctx.fillStyle=(o.inverte?d.v<0:d.v>0)?css("--c2"):css("--ok");ctx.fillText(d.t,d.x,d.y)});
   ctx.font=`700 12.5px ${fam}`; ctx.fillStyle=ink;
   bar.forEach(b=>{if(!b.rot){ctx.textAlign="center";ctx.textBaseline="bottom";ctx.fillText(b.t,b.x,b.y)}
     else{ctx.save();ctx.translate(b.x,b.y);ctx.rotate(-Math.PI/2);ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(b.t,0,0);ctx.restore()}});
