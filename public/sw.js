@@ -2,18 +2,14 @@
 // Página: rede primeiro (sempre a versão mais nova), com cópia para usar sem internet.
 // Ícones, fontes e bibliotecas: cache primeiro, atualizando em segundo plano.
 // /api nunca passa pelo cache.
-const VERSAO = "cpm-v4";
-const BASE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
-const CDN = [
-  "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js",
-];
+const VERSAO = "cpm-v5";
+// a biblioteca do Excel (grande) entra no cache na primeira vez que for usada
+const BASE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/vendor/chart-4.4.1.min.js"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open(VERSAO).then(async (c) => {
       await c.addAll(BASE);
-      await Promise.all(CDN.map((u) => c.add(new Request(u, { mode: "no-cors" })).catch(() => {})));
     }).then(() => self.skipWaiting())
   );
 });

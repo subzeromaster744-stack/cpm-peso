@@ -12,6 +12,8 @@
 
 const SECOES = ["A", "B", "C", "D"];
 const SESSAO_DIAS = 30;
+const MAX_TENTATIVAS = 6;       // erros seguidos antes de travar o login
+const TRAVA_MIN = 10;           // minutos de trava
 const PBKDF2_ITER = 100000;
 const ID_RE = /^[A-Za-z0-9_.:@+~-]{1,120}$/;
 const LOGIN_RE = /^[a-z0-9._-]{2,40}$/;
@@ -69,6 +71,9 @@ async function sessao(request, env) {
   if (!ID_RE.test(token)) return null;
   const s = await getDoc(env, "sessoes", token);
   if (!s || s.expira < Date.now()) return null;
+  // renova a sessão de quem usa o app com frequência
+  if (s.expira - Date.now() < (SESSAO_DIAS / 2) * 864e5)
+    await putDoc(env, "sessoes", token, { ...s, expira: Date.now() + SESSAO_DIAS * 864e5 });
   if (s.login === "admin") return { token, login: "admin", nome: "Administrador", secao: "", papel: "admin", mestre: true };
   const u = await getDoc(env, "usuarios", s.login);
   if (!u || u.ativo === false) return null;
@@ -97,6 +102,12 @@ async function api(request, env, path, method) {
     const login = String(body?.login || "").trim().toLowerCase();
     const senha = String(body?.senha || "");
     if (!login || !senha) return fail("informe usuário e senha", 400);
+    const tKey = "t-" + (await sha(login)).slice(0, 32);
+    const tent = (await getDoc(env, "tentativas", tKey)) || { n: 0, ate: 0 };
+    if (tent.ate > Date.now()) {
+      const min = Math.ceil((tent.ate - Date.now()) / 60000);
+      return fail(`muitas tentativas erradas; tente de novo em ${min} min`, 429);
+    }
     let user = null;
     if (login === "admin") {
       if (!env.ADMIN_PASSWORD) return fail("a senha do admin ainda não foi configurada no Cloudflare", 503);
@@ -109,7 +120,12 @@ async function api(request, env, path, method) {
         if (iguais(hash, u.hash)) user = publico(u);
       }
     }
-    if (!user) return fail("usuário ou senha incorretos", 401);
+    if (!user) {
+      const n = (tent.ate && tent.ate <= Date.now() ? 0 : tent.n) + 1;
+      await putDoc(env, "tentativas", tKey, { n, ate: n >= MAX_TENTATIVAS ? Date.now() + TRAVA_MIN * 60000 : 0 });
+      return fail("usuário ou senha incorretos", 401);
+    }
+    if (tent.n) await delStmt(env, "tentativas", tKey).run();
     const token = toHex(crypto.getRandomValues(new Uint8Array(24)));
     await putDoc(env, "sessoes", token, { login: user.login, criada: Date.now(), expira: Date.now() + SESSAO_DIAS * 864e5 });
     // limpeza de sessões vencidas
@@ -127,6 +143,21 @@ async function api(request, env, path, method) {
     return json({ ok: true });
   }
 
+  /* ---------- trocar a própria senha ---------- */
+  if (path === "/api/minha-senha" && method === "POST") {
+    if (me.mestre) return fail("a senha do admin principal é trocada no Cloudflare (ADMIN_PASSWORD)", 400);
+    const u = await getDoc(env, "usuarios", me.login);
+    const atual = String(body?.atual || ""), nova = String(body?.nova || "");
+    if (!u || !iguais((await hashSenha(atual, u.salt)).hash, u.hash)) return fail("a senha atual está errada", 400);
+    if (nova.length < 4) return fail("a nova senha precisa ter pelo menos 4 caracteres", 400);
+    const cred = await hashSenha(nova);
+    await env.DB.batch([
+      putStmt(env, "usuarios", me.login, { ...u, ...cred, atualizadoEm: Date.now() }),
+      env.DB.prepare("DELETE FROM docs WHERE coll = 'sessoes' AND json_extract(data, '$.login') = ? AND id != ?").bind(me.login, me.token),
+    ]);
+    return json({ ok: true });
+  }
+
   /* ---------- usuários (admin) ---------- */
   if (path === "/api/usuarios" && method === "GET") {
     if (!admin) return fail("só o admin pode ver usuários", 403);
@@ -137,6 +168,8 @@ async function api(request, env, path, method) {
     if (!admin) return fail("só o admin pode alterar usuários", 403);
     const login = decodeURIComponent(m[1]).toLowerCase();
     if (!LOGIN_RE.test(login) || login === "admin") return fail("login inválido (use letras minúsculas, números, ponto, hífen ou _)", 400);
+    if (login === me.login && (method === "DELETE" || body?.ativo === false || body?.papel !== "admin"))
+      return fail("você não pode excluir, bloquear ou tirar o acesso de admin da sua própria conta", 400);
     if (method === "DELETE") {
       await env.DB.batch([
         delStmt(env, "usuarios", login),
@@ -236,7 +269,12 @@ async function api(request, env, path, method) {
     if (!admin)
       rows = rows
         .filter((r) => r.data.secao === me.secao || (r.data.itens || []).some((i) => i.secao === me.secao))
-        .map((r) => ({ id: r.id, data: { ...r.data, itens: (r.data.itens || []).filter((i) => (i.secao || r.data.secao) === me.secao) } }));
+        .map((r) => {
+          const itens = (r.data.itens || []).filter((i) => (i.secao || r.data.secao) === me.secao);
+          const pesoTotal = +itens.reduce((a, i) => a + (+i.pesoTotal || 0), 0).toFixed(3);
+          const qtdPecas = itens.reduce((a, i) => a + (+i.qtd || 0), 0);
+          return { id: r.id, data: { ...r.data, itens, pesoTotal, qtdPecas, qtdItens: undefined } };
+        });
     return json(rows);
   }
   m = path.match(/^\/api\/envios\/([^/]+)$/);

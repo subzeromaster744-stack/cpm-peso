@@ -22,12 +22,13 @@
   --f-display:"Barlow Condensed","Arial Narrow",sans-serif;
   --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --seg-on:#ffffff;
   --r:12px; --nav-h:0px;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#11171b; --panel:#1a2227; --soft:#141b1f; --ink:#e3e9ec; --muted:#91a0a8; --line:#2a353b;
-  --accent:#36c2bb; --accent-ink:#0b1416; --accent-soft:#163c3a; --steel:#36c2bb; --danger:#e57560; --danger-soft:#3a201b; --ok:#4cc48a;
+  --accent:#36c2bb; --accent-ink:#0b1416; --accent-soft:#163c3a; --steel:#36c2bb; --danger:#e57560; --danger-soft:#3a201b; --ok:#4cc48a; --seg-on:#2c3a41;
   --c1:#36c2bb; --c2:#f0a24f; --c3:#8199e8; --c4:#d77bb0; --c5:#9cc25a; --c6:#c09a7a; --c7:#6cc3e6; color-scheme:dark}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
@@ -79,7 +80,7 @@ h3{font-size:12px;margin:0;letter-spacing:.09em;text-transform:uppercase;color:v
 /* ---------- controles ---------- */
 .seg{display:flex;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
 .seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:8px 10px;font-weight:600;color:var(--muted);white-space:nowrap}
-.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+.seg button[aria-pressed="true"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0 / .12)}
 .seg.lg button{padding:10px 12px;font-size:15px}
 .seg.lg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
@@ -233,6 +234,10 @@ tbody tr[data-code]:hover td{background:var(--soft)}
 
 body.on-calc .toast{bottom:calc(var(--nav-h) + 92px + env(safe-area-inset-bottom,0px))}
 @media (min-width:821px){body.on-calc .toast{bottom:16px}}
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;background:rgb(10 18 22 / .45);display:grid;place-items:center;padding:16px}
+.sheet{width:100%;max-width:420px;max-height:calc(100dvh - 32px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 50px rgb(0 0 0 / .25)}
+@media (max-width:560px){.modal{place-items:end stretch;padding:0}.sheet{max-width:none;border-radius:18px 18px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}}
 /* login */
 body.locked .wrap,body.locked .mbar{display:none!important}
 .login{display:none;min-height:100vh;min-height:100dvh;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px))}
@@ -245,7 +250,12 @@ body.locked .login{display:grid}
 .who small{color:var(--muted);font-weight:500}
 .who .btn{min-height:34px;padding:5px 10px;font-size:13px}
 .fixsec{display:flex;align-items:center;gap:8px;font-weight:700}
-@media (max-width:700px){.who .full{display:none}.who small{font-weight:700;color:var(--accent);white-space:nowrap}
+.acct{border:0;background:transparent;padding:4px 6px;border-radius:8px;display:flex;align-items:baseline;gap:6px;font-weight:600}
+.acct:hover{background:var(--soft)}
+.acct small{color:var(--muted);font-weight:500}
+.acct small::before{content:"· "}
+@media (max-width:700px){.who .full{display:none}.who small{font-weight:700;color:var(--accent);white-space:nowrap}.acct small::before{content:""}.acct .full:only-child{display:inline;font-size:13px}
+  .who .install{display:none}
   header{flex-wrap:nowrap}.brand{min-width:0}.brand h1{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who{flex:none}}
 /* usuários */
 .urow{display:grid;grid-template-columns:minmax(0,1fr) 90px 100px auto;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)}
@@ -301,7 +311,7 @@ body.locked .login{display:grid}
           <button type="button" data-src="livre" aria-pressed="false">Medida livre</button>
         </div>
 
-        <div id="srcCat" class="grid2">
+        <div id="srcCat" class="grid2 stack">
           <label class="f" for="tipo">Tipo de aço<select id="tipo"></select></label>
           <label class="f" for="bitola">Bitola<select id="bitola"></select></label>
         </div>
@@ -424,6 +434,25 @@ body.locked .login{display:grid}
     <p class="note">O usuário <b>admin</b> é o administrador principal; a senha dele fica no Cloudflare (ADMIN_PASSWORD). Usuários de seção só veem, adicionam e enviam itens da própria seção.</p>
   </section>
 </div>
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mdTitle">
+    <div class="spread"><h2 id="mdTitle">Minha conta</h2><button type="button" class="x" id="mdClose" aria-label="Fechar">×</button></div>
+    <p class="muted" id="mdWho"></p>
+    <form id="pwForm" class="col">
+      <h3>Trocar senha</h3>
+      <label class="f" for="pwAtual">Senha atual<span class="inp"><input id="pwAtual" class="txt" type="password" autocomplete="current-password" required></span></label>
+      <label class="f" for="pwNova">Nova senha<span class="inp"><input id="pwNova" class="txt" type="password" autocomplete="new-password" minlength="4" required></span></label>
+      <p class="err" id="pwErr"></p>
+      <button class="btn">Salvar nova senha</button>
+    </form>
+    <p class="note" id="pwMestre" hidden>A senha do admin principal é trocada no Cloudflare, no segredo ADMIN_PASSWORD.</p>
+    <div class="col" id="mdInstall" style="border-top:1px solid var(--line);padding-top:12px">
+      <h3>Instalar no celular</h3>
+      <p class="note" id="mdInstallTxt"></p>
+      <button type="button" class="btn quiet" id="mdInstallBtn" hidden>Instalar app</button>
+    </div>
+  </div>
+</div>
 <div class="mbar" id="mbar">
   <div class="mv"><small id="mLabel">Peso total</small><b id="mVal">–</b></div>
   <select id="mSec" aria-label="Seção"></select>
@@ -431,8 +460,6 @@ body.locked .login{display:grid}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 <script>
 "use strict";
 /* ===================== DADOS ===================== */
@@ -480,6 +507,16 @@ let toastT; function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;
 const grupoDe=r=>(r.codigo&&ITEMS[r.codigo])?ITEMS[r.codigo].grupo:"Medida livre";
 const kgFmt=k=>fmt(k,k<10?3:2);
 const curto=s=>String(s||"").replace(/^BARRA RED /,"");
+
+/* ===================== BIBLIOTECAS (sob demanda) ===================== */
+const libs={};
+function lib(nome,src,global){
+  if(window[global])return Promise.resolve(window[global]);
+  return libs[nome]||(libs[nome]=new Promise((ok,erro)=>{const sc=document.createElement("script");sc.src=src;sc.async=true;
+    sc.onload=()=>window[global]?ok(window[global]):erro(new Error(nome));sc.onerror=()=>{delete libs[nome];erro(new Error(nome))};document.head.append(sc)}));
+}
+const loadChart=()=>lib("chart","/vendor/chart-4.4.1.min.js","Chart");
+const loadXLSX=()=>lib("xlsx","/vendor/xlsx-0.18.5.min.js","XLSX");
 
 /* ===================== API ===================== */
 let token=LS.get("cpm-token",""), me=null;
@@ -718,8 +755,10 @@ $("btnConfirmar").addEventListener("click",async()=>{
     itens:docs.map(r=>({codigo:r.codigo||"",base:baseOf(r),descricao:r.descricao,material:r.material,qtd:r.qtd,pesoPeca:r.pesoPeca,pesoTotal:r.pesoTotal,comprimento:r.comprimento??null,secao:r.secao||""}))};
   $("btnConfirmar").disabled=true;
   try{
-    const res=await api("POST","/api/enviar",{envio,ids:docs.map(r=>r.id)});
-    $("obs").value=""; $("confirmBox").hidden=true; toast(`Envio ${numero} registrado`);
+    let res;
+    try{res=await api("POST","/api/enviar",{envio,ids:docs.map(r=>r.id)})}
+    catch(e){if(e.status!==409)throw e;envio.numero=numero+"-"+Math.random().toString(36).slice(2,4).toUpperCase();res=await api("POST","/api/enviar",{envio,ids:docs.map(r=>r.id)})}
+    $("obs").value=""; $("confirmBox").hidden=true; toast(`Envio ${envio.numero} registrado`);
     exportar(res.envio||envio);
     await loadColeta(); loadEnvios().catch(()=>{});
   }catch(e){toast(e.status===409?"Esse envio já foi registrado.":"O envio falhou. Nada foi alterado; tente de novo.")}
@@ -727,8 +766,8 @@ $("btnConfirmar").addEventListener("click",async()=>{
 });
 
 /* ===================== EXCEL ===================== */
-function exportar(e){
-  if(!window.XLSX){toast("O gerador de Excel ainda está carregando. Baixe pelo Histórico em instantes.");return}
+async function exportar(e){
+  try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel. Verifique a conexão e baixe pelo Histórico.");return}
   const gs=agrupar(e.itens||[]), porCod=new Map(), livres=[];
   gs.forEach(g=>{if(g.codigo&&ITEMS[g.codigo]){const a=porCod.get(g.codigo)||{qtd:0,kg:0,comp:0,cortes:[],secs:new Set(),material:g.material};
       a.qtd+=g.qtd;a.kg+=g.pesoTotal;a.comp+=g.compTotal;a.cortes.push((g.secao?g.secao+": ":"")+g.cortesTxt);if(g.secao)a.secs.add(g.secao);porCod.set(g.codigo,a)}
@@ -751,10 +790,10 @@ function exportar(e){
 }
 
 /* ===================== HISTÓRICO ===================== */
-let histSec="Todas", charts={}, lastSig="", editing=null, askDel=null, openEnv=new Set(), chartWait=0;
-const drawHistSec=()=>chipsSec($("histSec"),histSec,s=>{histSec=s;drawHistSec();renderHist(true)});
+let histLimit=20, histSec="Todas", charts={}, lastSig="", editing=null, askDel=null, openEnv=new Set(), chartWait=0;
+const drawHistSec=()=>chipsSec($("histSec"),histSec,s=>{histSec=s;histLimit=20;drawHistSec();renderHist(true)});
 drawHistSec();
-$("histPer").addEventListener("change",()=>renderHist(true));
+$("histPer").addEventListener("change",()=>{histLimit=20;renderHist(true)});
 
 const desde=()=>{const d=+$("histPer").value;return d?Date.now()-d*864e5:0};
 const secItem=(r,e)=>r.secao||(e.secao&&e.secao!=="Todas"?e.secao:"");
@@ -769,7 +808,7 @@ function mkChart(id,cfg,empty){
   const box=$(id).parentElement; let nn=box.querySelector(".none");
   if(empty){if(charts[id]){charts[id].destroy();delete charts[id]}$(id).hidden=true;if(!nn){nn=document.createElement("div");nn.className="none";box.append(nn)}nn.textContent="Sem dados no período";return}
   $(id).hidden=false; if(nn)nn.remove();
-  if(!window.Chart){if(chartWait++<25)setTimeout(()=>renderHist(true),500);return}
+  if(!window.Chart){if(!chartWait++)loadChart().then(()=>renderHist(true)).catch(()=>{chartWait=0});return}
   const muted=css("--muted"),line=css("--line");
   Chart.defaults.font.family=css("--f-body"); Chart.defaults.color=muted;
   cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:false,
@@ -780,7 +819,7 @@ function mkChart(id,cfg,empty){
 }
 function renderHist(force){
   if(view!=="hist")return;
-  const sig=JSON.stringify(envios.map(e=>[e.numero,e.pesoTotal,e.secao,e.obs,e.enviadoPor,(e.itens||[]).length]))+histSec+$("histPer").value+isAdm()+editing+askDel;
+  const sig=JSON.stringify(envios.map(e=>[e.numero,e.pesoTotal,e.secao,e.obs,e.enviadoPor,(e.itens||[]).length]))+histSec+$("histPer").value+isAdm()+editing+askDel+histLimit;
   if(!force&&sig===lastSig)return; lastSig=sig;
   const rows=linhasHist(), envs=envFiltro(), t=somar(rows);
   $("kKg").textContent=fmt(t.kg,t.kg<100?2:0);
@@ -806,7 +845,9 @@ function renderHist(force){
     options:{cutout:"58%",plugins:{legend:{display:true,position:innerWidth<560?"bottom":"right",labels:{color:css("--ink"),boxWidth:12,padding:10}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.raw,2)} kg`}}}}},empty);
 
   renderAdminBar();
-  $("historico").innerHTML=envs.length?envs.map(envioHTML).join(""):'<p class="empty">Nenhum envio neste filtro.</p>';
+  const vis=envs.slice(0,histLimit);
+  $("historico").innerHTML=envs.length?vis.map(envioHTML).join("")+(envs.length>vis.length?`<button type="button" class="btn quiet block" id="histMais" style="margin-top:10px">Mostrar mais (${envs.length-vis.length} restantes)</button>`:""):'<p class="empty">Nenhum envio neste filtro.</p>';
+  const mais=$("histMais"); if(mais)mais.onclick=()=>{histLimit+=20;renderHist(true)};
 }
 
 function envioHTML(e){
@@ -929,9 +970,11 @@ function bloquear(msg){
 function entrar(user){
   me=user; LS.set("cpm-user",JSON.stringify(user)); document.body.classList.remove("locked");
   const adm=isAdm();
-  $("who").innerHTML=`<span class="nm2"><span class="full">${esc(me.nome)} · </span><small>${adm?"Admin":"Seção "+esc(me.secao)}</small></span><button type="button" class="btn quiet install" id="btnInstall">Instalar app</button><button type="button" class="btn quiet" id="btnSair">Sair</button>`;
+  const papel=me.mestre?"":adm?"Admin":"Seção "+esc(me.secao);
+  $("who").innerHTML=`<button type="button" class="acct" id="btnConta" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="align-self:center;flex:none"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><span class="full">${esc(me.nome)}</span>${papel?`<small>${papel}</small>`:""}</button><button type="button" class="btn quiet install" id="btnInstall">Instalar app</button><button type="button" class="btn quiet" id="btnSair">Sair</button>`;
   $("btnSair").onclick=async()=>{try{await api("POST","/api/logout")}catch{}bloquear("")};
-  $("btnInstall").onclick=instalar; if(deferredPrompt)$("btnInstall").classList.add("on");
+  $("btnConta").onclick=abrirConta;
+  $("btnInstall").onclick=instalar; if(deferredPrompt||iosInstalavel())$("btnInstall").classList.add("on");
   document.querySelector('.nav [data-v="users"]').hidden=!adm;
   // seção: admin escolhe; usuário fica preso à sua
   $("secPick").hidden=!adm; $("secFix").hidden=adm; $("mSec").hidden=!adm;
@@ -946,15 +989,40 @@ $("loginForm").addEventListener("submit",async ev=>{
   $("lgBtn").disabled=true; $("lgErr").textContent="";
   try{const r=await api("POST","/api/login",{login:$("lgUser").value.trim().toLowerCase(),senha:$("lgPass").value});
     token=r.token; LS.set("cpm-token",token); LS.set("cpm-ultimo",r.user.login); entrar(r.user)}
-  catch(e){$("lgErr").textContent=e.status===401?"Usuário ou senha incorretos.":e.status===503?"O administrador principal ainda não foi configurado no Cloudflare.":"Sem conexão com o servidor."}
+  catch(e){$("lgErr").textContent=e.status===401?"Usuário ou senha incorretos.":e.status===429?e.message.charAt(0).toUpperCase()+e.message.slice(1)+".":e.status===503?"O administrador principal ainda não foi configurado no Cloudflare.":"Sem conexão com o servidor."}
   finally{$("lgBtn").disabled=false}
+});
+
+/* ===================== MINHA CONTA ===================== */
+const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const iosInstalavel=()=>ios&&!standalone();
+function abrirConta(){
+  $("mdWho").textContent=`${me.nome} · ${me.mestre?"administrador principal":me.papel==="admin"?"administrador":"Seção "+me.secao} · usuário ${me.login}`;
+  $("pwForm").hidden=!!me.mestre; $("pwMestre").hidden=!me.mestre; $("pwErr").textContent=""; $("pwAtual").value=""; $("pwNova").value="";
+  if(standalone()){$("mdInstallTxt").textContent="Você já está usando o app instalado.";$("mdInstallBtn").hidden=true}
+  else if(deferredPrompt){$("mdInstallTxt").textContent="Instale para abrir o CPM direto da tela inicial, em tela cheia.";$("mdInstallBtn").hidden=false}
+  else if(ios){$("mdInstallTxt").innerHTML="No Safari, toque em <b>Compartilhar</b> (o quadrado com a seta) e depois em <b>Adicionar à Tela de Início</b>.";$("mdInstallBtn").hidden=true}
+  else{$("mdInstallTxt").innerHTML="No Chrome, abra o menu <b>⋮</b> e toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.";$("mdInstallBtn").hidden=true}
+  $("modal").hidden=false;
+}
+const fecharConta=()=>{$("modal").hidden=true};
+$("mdClose").onclick=fecharConta;
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))fecharConta()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("modal").hidden)fecharConta()});
+$("mdInstallBtn").onclick=()=>{fecharConta();instalar()};
+$("pwForm").addEventListener("submit",async ev=>{
+  ev.preventDefault(); const b=ev.submitter||$("pwForm").querySelector("button"); b.disabled=true; $("pwErr").textContent="";
+  try{await api("POST","/api/minha-senha",{atual:$("pwAtual").value,nova:$("pwNova").value});fecharConta();toast("Senha alterada")}
+  catch(e){if(e.status!==401)$("pwErr").textContent=e.message.charAt(0).toUpperCase()+e.message.slice(1)+"."}
+  finally{b.disabled=false}
 });
 
 /* ===================== APP (PWA) ===================== */
 let deferredPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;const b=$("btnInstall");if(b)b.classList.add("on")});
 window.addEventListener("appinstalled",()=>{deferredPrompt=null;const b=$("btnInstall");if(b)b.classList.remove("on");toast("App instalado")});
-async function instalar(){if(!deferredPrompt)return;deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch{}deferredPrompt=null;$("btnInstall").classList.remove("on")}
+async function instalar(){if(!deferredPrompt){abrirConta();return}deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch{}deferredPrompt=null;$("btnInstall").classList.remove("on")}
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 
 /* ===================== SINCRONIZAÇÃO ===================== */

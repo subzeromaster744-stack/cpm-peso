@@ -4,6 +4,7 @@ App (PWA) com calculadora de peso, calculadora por kg, central de coleta por se�
 histórico com gráficos, login e cadastro de usuários.
 
 - `public/index.html` — o app
+- `public/vendor/` — bibliotecas de gráficos e Excel (hospedadas no próprio site)
 - `public/sw.js`, `public/manifest.webmanifest`, `public/icons/` — instalação como app e uso sem internet
 - `src/index.js` — API (login, usuários, central, envios)
 - `wrangler.jsonc` — configuração; usa o banco D1 `cpm-peso`
@@ -24,6 +25,12 @@ Workers & Pages → cpm-peso → Settings → Variables and Secrets → Add
 
 Sem esse segredo ninguém consegue entrar. Depois de entrar como admin, use a aba **Usuários** para cadastrar
 as pessoas de cada seção (e outros administradores, se quiser).
+
+## Segurança
+
+- Senhas guardadas com PBKDF2 (nunca em texto puro); login trava por 10 min após 6 erros seguidos.
+- Sessão dura 30 dias e se renova sozinha com o uso; trocar a senha ou bloquear o usuário derruba as sessões.
+- Cada pessoa pode trocar a própria senha tocando no nome/ícone de conta no topo.
 
 ## Permissões
 
