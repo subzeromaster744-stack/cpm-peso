@@ -270,6 +270,42 @@ async function api(request, env, path, method) {
     const rows = await listDocs(env, "auditorias");
     return json(rows.map((r) => r.data).sort((a, b) => String(a.data).localeCompare(String(b.data))));
   }
+  // importação da planilha de auditoria (lida no navegador): grava ou atualiza cada auditoria pela data
+  if (path === "/api/auditorias/importar" && method === "POST") {
+    if (!admin) return fail("só o admin pode importar auditorias", 403);
+    const lista = Array.isArray(body?.auditorias) ? body.auditorias : null;
+    if (!lista || !lista.length || lista.length > 200) return fail("nenhuma auditoria para importar", 400);
+    const NUM = ["fisico", "sap", "valorKg", "perda", "proposto", "consumo", "sobras"];
+    const TXT = ["obs", "propostoObs", "sobrasObs"];
+    const limpas = [];
+    for (const a of lista) {
+      if (!a || !/^\d{4}-\d{2}-\d{2}$/.test(a.data || "") || !Array.isArray(a.itens) || !a.itens.length || a.itens.length > 500)
+        return fail("auditoria inválida: " + (a && a.data), 400);
+      const itens = a.itens.map((i) => {
+        const o = { codigo: String(i.codigo || "").slice(0, 20) };
+        for (const k of NUM) if (typeof i[k] === "number" && isFinite(i[k])) o[k] = i[k];
+        for (const k of TXT) if (typeof i[k] === "string" && i[k].trim()) o[k] = i[k].trim().slice(0, 120);
+        return o;
+      }).filter((i) => /^\d{4,12}$/.test(i.codigo));
+      const doc = {
+        id: "AUD-" + a.data.replace(/-/g, ""), data: a.data,
+        periodoConsumo: String(a.periodoConsumo || "").slice(0, 80),
+        fonte: String(a.fonte || "").slice(0, 120), importadoEm: Date.now(), importadoPor: me.nome, itens,
+      };
+      if (JSON.stringify(doc).length > 300_000) return fail("auditoria grande demais: " + a.data, 400);
+      limpas.push(doc);
+    }
+    const existentes = new Set((await listDocs(env, "auditorias")).map((r) => r.id));
+    await env.DB.batch(limpas.map((d) => putStmt(env, "auditorias", d.id, d)));
+    const novas = limpas.filter((d) => !existentes.has(d.id)).length;
+    return json({ ok: true, novas, atualizadas: limpas.length - novas });
+  }
+  m = path.match(/^\/api\/auditorias\/(AUD-\d{8})$/);
+  if (m && method === "DELETE") {
+    if (!admin) return fail("só o admin pode excluir auditorias", 403);
+    await delStmt(env, "auditorias", m[1]).run();
+    return json({ ok: true });
+  }
 
   if (path === "/api/envios" && method === "GET") {
     let rows = await listDocs(env, "envios");
