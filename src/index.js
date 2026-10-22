@@ -264,6 +264,13 @@ async function api(request, env, path, method) {
   }
 
   /* ---------- histórico ---------- */
+  /* ---------- auditorias de estoque (só admin, somente leitura) ---------- */
+  if (path === "/api/auditorias" && method === "GET") {
+    if (!admin) return fail("só o admin pode ver as auditorias", 403);
+    const rows = await listDocs(env, "auditorias");
+    return json(rows.map((r) => r.data).sort((a, b) => String(a.data).localeCompare(String(b.data))));
+  }
+
   if (path === "/api/envios" && method === "GET") {
     let rows = await listDocs(env, "envios");
     if (!admin)

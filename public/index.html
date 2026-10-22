@@ -208,6 +208,8 @@ tbody tr[data-code]:hover td{background:var(--soft)}
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 @media (max-width:1040px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){.kpi b{font-size:25px}.kpi b.sm{white-space:normal}}
 .kpi b.up{color:var(--c2)}.kpi b.down{color:var(--ok)}
 label.f.inline{flex-direction:row;align-items:center;gap:8px}
 .inp.sm{min-height:38px;width:120px}.inp.sm input{font-size:17px;padding:4px 8px}
@@ -222,6 +224,14 @@ table.mes td:first-child{font-weight:600}
 table.mes .up{color:var(--c2)}table.mes .down{color:var(--ok)}
 table.mes tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:0}
 table.mes tr.atual td{background:var(--soft)}
+.vstack{display:flex;flex-direction:column;gap:12px}
+#view-hist>.seg{align-self:flex-start;min-width:min(100%,460px)}
+.warn{border:1.5px solid var(--c2);background:color-mix(in srgb,var(--c2) 12%,transparent);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.warn p{margin:0;flex:1 1 260px}
+.warn label{display:inline-flex;gap:6px;align-items:center;font-weight:700;cursor:pointer}
+.flag{color:var(--c2);font-weight:700}
+table.det td.obs{white-space:normal;font-size:13px;color:var(--muted);max-width:180px}
+table.det td:first-child small{display:block;font-weight:500;color:var(--muted);font-size:12px}
 @media (max-width:640px){
   table.mes thead{display:none}
   table.mes,table.mes tbody,table.mes tfoot{display:block}
@@ -233,6 +243,8 @@ table.mes tr.atual td{background:var(--soft)}
   table.mes td:first-child{grid-column:1/-1;font-family:var(--f-body);font-size:15px;font-weight:700}
   table.mes td:first-child::before{display:none}
   table.mes td[data-l="Total"],table.mes td[data-l="Dif. %"]{display:none}
+  table.mes td[data-l="Obs."]{grid-column:1/-1}
+  table.mes td[data-l="Obs."]:empty{display:none}
   table.mes tfoot tr{border-top:2px solid var(--line);border-bottom:0}
   table.mes tfoot td{border:0}
   table.mes tfoot td[data-l="Média"]{grid-column:1/-1}
@@ -414,6 +426,11 @@ body.locked .login{display:grid}
 
   <!-- ===================== HISTÓRICO ===================== -->
   <div id="view-hist" hidden>
+    <div class="seg lg" id="histModo" role="group" aria-label="O que ver" hidden>
+      <button type="button" data-hm="app" aria-pressed="true">Pedidos do app</button>
+      <button type="button" data-hm="aud" aria-pressed="false">Auditorias de estoque</button>
+    </div>
+    <div id="histApp" class="vstack">
     <section class="card">
       <div class="spread"><h2>Histórico</h2>
         <div class="row">
@@ -451,6 +468,60 @@ body.locked .login{display:grid}
       <div class="spread" id="adminBar"></div>
       <div id="historico"></div>
     </section>
+    </div>
+
+    <!-- auditorias (admin) -->
+    <div id="histAud" class="vstack" hidden>
+      <section class="card">
+        <div class="spread"><h2>Auditorias de estoque</h2>
+          <div class="row">
+            <select id="audPer" style="width:auto;min-height:38px" aria-label="Período">
+              <option value="12">Últimos 12 meses</option><option value="24">Últimos 24 meses</option><option value="0" selected>Tudo</option>
+            </select>
+            <button type="button" class="btn quiet sm" id="audXls">Baixar Excel</button>
+          </div></div>
+        <div class="grid2 stack">
+          <label class="f" for="audGrupo">Tipo de aço<select id="audGrupo"></select></label>
+          <label class="f" for="audMat">Material<select id="audMat"></select></label>
+        </div>
+        <div class="warn" id="audWarn" hidden></div>
+      </section>
+      <div class="kpis">
+        <div class="kpi"><span id="aKFisLbl">Estoque físico</span><b id="aKFis">–</b><small id="aKFisSub">kg</small></div>
+        <div class="kpi"><span>Valor do estoque (R$)</span><b id="aKVal">–</b><small id="aKValSub">–</small></div>
+        <div class="kpi"><span id="aKConLbl">Consumo</span><b id="aKCon">–</b><small id="aKConSub">–</small></div>
+        <div class="kpi"><span>Perda estimada</span><b id="aKPer">–</b><small id="aKPerSub">–</small></div>
+        <div class="kpi"><span>Diferença</span><b id="aKDif">–</b><small id="aKDifSub">–</small></div>
+        <div class="kpi"><span>Auditorias</span><b id="aKN">–</b><small id="aKNSub">–</small></div>
+      </div>
+      <section class="card">
+        <h2>Consumo e perda por auditoria</h2>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Consumo</span><span><i style="background:var(--c2)"></i>Perda estimada</span><span><i class="ln"></i>Diferença da auditoria anterior</span></div>
+        <div class="cv" style="height:260px;position:relative"><canvas id="chAud"></canvas></div>
+        <div class="tbl"><table class="mes">
+          <thead><tr><th>Auditoria</th><th class="n">Consumo (kg)</th><th class="n">kg/dia</th><th class="n">Perda %</th><th class="n">Perda (kg)</th><th class="n">Diferença (kg)</th><th class="n">Estoque (kg)</th><th class="n">Valor (R$)</th></tr></thead>
+          <tbody id="audTbl"></tbody><tfoot id="audTot"></tfoot>
+        </table></div>
+        <p class="note">Perda estimada = consumo × % de perda de cada material. kg/dia = consumo dividido pelos dias desde a auditoria anterior. Diferença = consumo da auditoria menos o da anterior. Dados importados da planilha de auditoria, sem o SAP.</p>
+      </section>
+      <section class="card">
+        <h2>Estoque físico e valor</h2>
+        <div class="legend"><span><i style="background:var(--c3)"></i>Estoque físico (kg)</span><span><i style="background:var(--c2)"></i>Valor do estoque (R$)</span></div>
+        <div class="cv" style="height:240px;position:relative"><canvas id="chAudEst"></canvas></div>
+      </section>
+      <section class="card">
+        <div class="spread"><h2>Materiais na auditoria</h2>
+          <div class="row">
+            <select id="audSel" style="width:auto;min-height:38px" aria-label="Auditoria"></select>
+            <select id="audOrd" style="width:auto;min-height:38px" aria-label="Ordenar">
+              <option value="consumo">Maior consumo</option><option value="fisico">Maior estoque</option><option value="valor">Maior valor</option><option value="perda">Maior % perda</option><option value="codigo">Código</option>
+            </select></div></div>
+        <div class="tbl"><table class="mes det">
+          <thead><tr><th>Material</th><th class="n">Estoque (kg)</th><th class="n">R$/kg</th><th class="n">Valor (R$)</th><th class="n">Consumo (kg)</th><th class="n">Perda %</th><th class="n">Proposto %</th><th>Obs.</th></tr></thead>
+          <tbody id="audDet"></tbody><tfoot id="audDetTot"></tfoot>
+        </table></div>
+      </section>
+    </div>
   </div>
 
   <!-- ===================== USUÁRIOS (admin) ===================== -->
@@ -573,7 +644,7 @@ function showView(v){
   $("view-central").hidden=v!=="central"; $("view-hist").hidden=v!=="hist"; $("view-users").hidden=v!=="users";
   if(v==="users")loadUsers();
   document.querySelectorAll(".nav button").forEach(b=>b.dataset.v===v?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
-  if(v==="hist")loadEnvios().catch(()=>{}).finally(()=>renderHist(true));
+  if(v==="hist"){aplicarModo();loadEnvios().catch(()=>{}).finally(()=>renderHist(true))}
   if(v==="central")sync();
   window.scrollTo({top:0});
 }
@@ -823,6 +894,154 @@ async function exportar(e){
   XLSX.writeFile(wb,`Pedido ${e.numero}.xlsx`);
 }
 
+/* ===================== AUDITORIAS (admin) ===================== */
+let histModo="app", auds=null, audAnom=new Set(), audIgnorar=false;
+document.querySelectorAll("[data-hm]").forEach(b=>b.addEventListener("click",()=>{histModo=b.dataset.hm;aplicarModo()}));
+function aplicarModo(){
+  if(!isAdm())histModo="app";
+  setPressed("[data-hm]","hm",histModo);
+  $("histModo").hidden=!isAdm(); $("histApp").hidden=histModo!=="app"; $("histAud").hidden=histModo!=="aud";
+  if(histModo==="aud")loadAuditorias(); else renderHist(true);
+}
+$("audGrupo").innerHTML='<option value="">Todos os tipos</option>'+GROUPS.map(([g])=>`<option>${g}</option>`).join("");
+function fillAudMat(){
+  const g=$("audGrupo").value, cur=$("audMat").value;
+  const list=GROUPS.filter(([n])=>!g||n===g).flatMap(([,l])=>l);
+  $("audMat").innerHTML='<option value="">Todos os materiais</option>'+list.map(([c,d])=>`<option value="${c}">${c} · ${curto(d)}</option>`).join("");
+  if(list.some(([c])=>c===cur))$("audMat").value=cur;
+}
+fillAudMat();
+$("audGrupo").addEventListener("change",()=>{fillAudMat();renderAud()});
+["audMat","audPer","audOrd"].forEach(id=>$(id).addEventListener("change",renderAud));
+$("audSel").addEventListener("change",renderAudDet);
+
+const dataBR=iso=>{const [y,m,d]=iso.split("-").map(Number);return new Date(y,m-1,d)};
+const fmtData=iso=>dataBR(iso).toLocaleDateString("pt-BR");
+const fmtR$=v=>"R$ "+fmt(v,0);
+const fmtR$c=v=>Math.abs(v)>=1e6?"R$ "+fmt(v/1e6,2)+" mi":fmtR$(v);
+const serialXL=iso=>{const [y,m,d]=iso.split("-").map(Number);return (Date.UTC(y,m-1,d)-Date.UTC(1899,11,30))/864e5};
+const grupoCod=c=>(ITEMS[c]&&ITEMS[c].grupo)||"Outros";
+const descCod=c=>ITEMS[c]?curto(ITEMS[c].desc):"Material "+c;
+
+async function loadAuditorias(){
+  if(auds){renderAud();return}
+  $("audTbl").innerHTML='<tr><td colspan="8" class="muted">Carregando auditorias…</td></tr>';
+  try{
+    auds=(await api("GET","/api/auditorias")).sort((a,b)=>a.data.localeCompare(b.data));
+    // consumos fora do padrão: mais de 20× a mediana do próprio material e acima de 1.000 kg
+    const porMat=new Map();
+    auds.forEach(a=>a.itens.forEach(i=>{if(i.consumo>0){const l=porMat.get(i.codigo)||[];l.push(i.consumo);porMat.set(i.codigo,l)}}));
+    const med=new Map([...porMat].map(([c,l])=>{l=l.slice().sort((x,y)=>x-y);return[c,l[Math.floor(l.length/2)]]}));
+    audAnom=new Set();
+    auds.forEach(a=>a.itens.forEach(i=>{if(i.consumo>1000&&i.consumo>20*(med.get(i.codigo)||Infinity))audAnom.add(a.id+"|"+i.codigo)}));
+    renderAud();
+  }catch(e){if(e.status!==401)$("audTbl").innerHTML='<tr><td colspan="8" class="muted">Não foi possível carregar as auditorias.</td></tr>'}
+}
+const anom=(a,i)=>audAnom.has(a.id+"|"+i.codigo);
+function itensFiltrados(a){
+  const g=$("audGrupo").value, m=$("audMat").value;
+  return a.itens.filter(i=>(!g||grupoCod(i.codigo)===g)&&(!m||i.codigo===m));
+}
+function resumoAud(a,prev){
+  const its=itensFiltrados(a), temCons=its.some(i=>"consumo" in i);
+  const usar=its.filter(i=>!(audIgnorar&&anom(a,i)));
+  const consumo=temCons?usar.reduce((x,i)=>x+(i.consumo||0),0):null;
+  const perdaKg=temCons?usar.reduce((x,i)=>x+Math.max(0,i.consumo||0)*(i.perda||0),0):null;
+  const fisico=its.reduce((x,i)=>x+(i.fisico||0),0), valor=its.reduce((x,i)=>x+(i.fisico||0)*(i.valorKg||0),0);
+  const dias=prev?Math.round((dataBR(a.data)-dataBR(prev.data))/864e5):null;
+  return {a,consumo,perdaKg,perdaPct:consumo>0?perdaKg/consumo*100:null,fisico,valor,dias,kgDia:consumo!=null&&dias?consumo/dias:null,anom:its.some(i=>anom(a,i))};
+}
+let audLinhas=[];
+function renderAud(){
+  if(!auds||histModo!=="aud")return;
+  const n=+$("audPer").value, lim=n?new Date(new Date().getFullYear(),new Date().getMonth()-n,new Date().getDate()):null;
+  const todas=auds.map((a,k)=>resumoAud(a,auds[k-1]));
+  // diferença: consumo menos o da auditoria anterior que tinha consumo
+  let ant=null; todas.forEach(r=>{r.dif=r.consumo!=null&&ant!=null?r.consumo-ant:null;r.difPct=r.dif!=null&&ant?r.dif/ant*100:null;if(r.consumo!=null)ant=r.consumo});
+  audLinhas=todas.filter(r=>!lim||dataBR(r.a.data)>=lim);
+  const nAnom=audLinhas.filter(r=>r.anom).length;
+  $("audWarn").hidden=!nAnom;
+  if(nAnom){
+    const ex=[...audAnom].map(k=>k.split("|")).filter(([id])=>audLinhas.some(r=>r.a.id===id)).map(([id,c])=>{const a=auds.find(x=>x.id===id),i=a.itens.find(x=>x.codigo===c);return`${descCod(c)} em ${fmtData(a.data)} (${fmt(i.consumo,0)} kg)`});
+    $("audWarn").innerHTML=`<p><b class="flag">⚠ Valores fora do padrão:</b> ${esc(ex.join("; "))}. São mais de 20 vezes o consumo normal do material; provável erro de digitação na planilha.</p><label><input type="checkbox" id="audIgn"${audIgnorar?" checked":""}> Desconsiderar nos totais</label>`;
+    $("audIgn").onchange=e=>{audIgnorar=e.target.checked;renderAud()};
+  }
+  const ult=audLinhas[audLinhas.length-1], ultC=[...audLinhas].reverse().find(r=>r.consumo!=null);
+  if(ult){
+    $("aKFisLbl").textContent=`Estoque físico · ${fmtData(ult.a.data)}`;
+    $("aKFis").textContent=fmt(ult.fisico,0); $("aKFisSub").textContent="kg na última auditoria";
+    $("aKVal").textContent=fmtR$c(ult.valor).replace("R$ ",""); $("aKValSub").textContent=`${fmtR$(ult.valor)} · média R$ ${fmt(ult.fisico?ult.valor/ult.fisico:0,2)}/kg`;
+  }
+  if(ultC){
+    $("aKConLbl").textContent=`Consumo · ${fmtData(ultC.a.data)}`;
+    $("aKCon").textContent=fmt(ultC.consumo,0); $("aKConSub").textContent=`kg${ultC.kgDia!=null?` · ${fmt(ultC.kgDia,0)} kg/dia`:""}${ultC.a.periodoConsumo?" · "+ultC.a.periodoConsumo:""}`;
+    $("aKPer").textContent=fmt(ultC.perdaKg,0); $("aKPerSub").textContent=ultC.perdaPct!=null?`kg · ${fmt(ultC.perdaPct,1)}% do consumo`:"kg";
+    $("aKDif").textContent=ultC.dif!=null?sinal(ultC.dif,0):"–"; $("aKDif").className=ultC.dif>0?"up":ultC.dif<0?"down":"";
+    $("aKDifSub").textContent=ultC.difPct!=null?`kg · ${sinal(ultC.difPct,1)}% vs auditoria anterior`:"kg";
+  }
+  const comC=audLinhas.filter(r=>r.consumo!=null);
+  $("aKN").textContent=audLinhas.length; $("aKNSub").textContent=audLinhas.length?`${fmtData(audLinhas[0].a.data)} a ${fmtData(ult.a.data)}`:"–";
+
+  const arrow=v=>v>0?"▲ ":v<0?"▼ ":"", cls=v=>v>0?"up":v<0?"down":"";
+  $("audTbl").innerHTML=audLinhas.slice().reverse().map((r,k)=>`<tr${k===0?' class="atual"':""}><td>${fmtData(r.a.data)}${r.anom?' <span class="flag" title="Contém valor fora do padrão">⚠</span>':""}${r.a.periodoConsumo?`<small class="muted" style="display:block;font-weight:500;font-size:12px">${esc(r.a.periodoConsumo)}</small>`:""}</td>
+    <td class="n" data-l="Consumo">${r.consumo!=null?fmt(r.consumo,0):"–"}</td><td class="n" data-l="kg/dia">${r.kgDia!=null?fmt(r.kgDia,0):"–"}</td>
+    <td class="n" data-l="Perda %">${r.perdaPct!=null?fmt(r.perdaPct,1)+"%":"–"}</td><td class="n" data-l="Perda">${r.perdaKg!=null?fmt(r.perdaKg,0):"–"}</td>
+    <td class="n ${cls(r.dif)}" data-l="Diferença">${r.dif!=null?arrow(r.dif)+sinal(r.dif,0)+(r.difPct!=null?` <small>(${sinal(r.difPct,0)}%)</small>`:""):"–"}</td>
+    <td class="n" data-l="Estoque">${fmt(r.fisico,0)}</td><td class="n" data-l="Valor R$">${fmt(r.valor,0)}</td></tr>`).join("")||'<tr><td colspan="8" class="muted">Nenhuma auditoria no período.</td></tr>';
+  const tc=comC.reduce((x,r)=>x+r.consumo,0), tp=comC.reduce((x,r)=>x+r.perdaKg,0);
+  $("audTot").innerHTML=comC.length?`<tr><td>Total</td><td class="n" data-l="Consumo">${fmt(tc,0)}</td><td class="n" data-l="kg/dia"></td><td class="n" data-l="Perda %">${tc?fmt(tp/tc*100,1)+"%":"–"}</td><td class="n" data-l="Perda">${fmt(tp,0)}</td><td class="n" colspan="3" data-l="Média">média ${fmt(tc/comC.length,0)} kg por auditoria</td></tr>`:"";
+
+  const lbl=audLinhas.map(r=>dataBR(r.a.data).toLocaleDateString("pt-BR",{month:"short",year:"2-digit"}).replace(". de ","/").replace(".",""));
+  mkChart("chAud",{type:"bar",data:{labels:lbl,datasets:[
+      {label:"Consumo",data:audLinhas.map(r=>r.consumo),backgroundColor:css("--accent"),stack:"a",order:2},
+      {label:"Perda estimada",data:audLinhas.map(r=>r.perdaKg),backgroundColor:css("--c2"),stack:"a",borderRadius:{topLeft:4,topRight:4},order:2},
+      {label:"Diferença",type:"line",data:audLinhas.map(r=>r.dif),borderColor:css("--ink"),backgroundColor:css("--ink"),borderWidth:2,pointRadius:3,spanGaps:true,order:1}]},
+    options:{interaction:{mode:"index",intersect:false},scales:{x:{stacked:true},y:{stacked:true}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:it=>fmtData(audLinhas[it[0].dataIndex].a.data),label:c=>c.raw==null?` ${c.dataset.label}: sem dado`:` ${c.dataset.label}: ${c.dataset.label==="Diferença"?sinal(c.raw,0):fmt(c.raw,0)} kg`}}}}},!comC.length);
+  mkChart("chAudEst",{type:"line",data:{labels:lbl,datasets:[
+      {label:"Estoque físico",data:audLinhas.map(r=>r.fisico),borderColor:css("--c3"),backgroundColor:css("--c3"),borderWidth:2,pointRadius:3,yAxisID:"y"},
+      {label:"Valor do estoque",data:audLinhas.map(r=>r.valor),borderColor:css("--c2"),backgroundColor:css("--c2"),borderWidth:2,pointRadius:3,borderDash:[5,4],yAxisID:"y1"}]},
+    options:{interaction:{mode:"index",intersect:false},scales:{y:{beginAtZero:true,title:{display:true,text:"kg"}},y1:{beginAtZero:true,position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"R$"}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:it=>fmtData(audLinhas[it[0].dataIndex].a.data),label:c=>c.dataset.yAxisID==="y1"?` Valor: ${fmtR$(c.raw)}`:` Estoque: ${fmt(c.raw,0)} kg`}}}}},!audLinhas.length);
+
+  const cur=$("audSel").value;
+  $("audSel").innerHTML=audLinhas.slice().reverse().map(r=>`<option value="${r.a.id}">${fmtData(r.a.data)}</option>`).join("");
+  if(audLinhas.some(r=>r.a.id===cur))$("audSel").value=cur;
+  renderAudDet();
+}
+function renderAudDet(){
+  const a=auds&&auds.find(x=>x.id===$("audSel").value); if(!a){$("audDet").innerHTML="";$("audDetTot").innerHTML="";return}
+  const ord=$("audOrd").value;
+  const its=itensFiltrados(a).map(i=>({...i,valor:(i.fisico||0)*(i.valorKg||0)}));
+  its.sort((x,y)=>ord==="codigo"?x.codigo.localeCompare(y.codigo):((y[ord]||0)-(x[ord]||0)));
+  const pct=v=>v==null?"–":fmt(v*100,1)+"%";
+  $("audDet").innerHTML=its.map(i=>`<tr><td>${esc(descCod(i.codigo))}<small><span class="code">${i.codigo}</span> · ${esc(grupoCod(i.codigo))}</small></td>
+    <td class="n" data-l="Estoque">${i.fisico!=null?fmt(i.fisico,0):"–"}</td><td class="n" data-l="R$/kg">${i.valorKg!=null?fmt(i.valorKg,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(i.valor,0)}</td>
+    <td class="n" data-l="Consumo">${i.consumo!=null?fmt(i.consumo,0)+(anom(a,i)?' <span class="flag" title="Fora do padrão">⚠</span>':""):"–"}</td>
+    <td class="n" data-l="Perda %">${pct(i.perda)}</td><td class="n" data-l="Proposto %">${pct(i.proposto)}</td>
+    <td class="obs" data-l="Obs.">${esc([i.propostoObs,i.obs,i.sobrasObs].filter(Boolean).join(" · "))}${i.sobras!=null?` <span class="muted">sobras ${fmt(i.sobras*100,1)}%</span>`:""}</td></tr>`).join("")||'<tr><td colspan="8" class="muted">Nenhum material neste filtro.</td></tr>';
+  const tf=its.reduce((x,i)=>x+(i.fisico||0),0), tv=its.reduce((x,i)=>x+i.valor,0), tc=its.reduce((x,i)=>x+(i.consumo||0),0);
+  $("audDetTot").innerHTML=its.length?`<tr><td>${its.length} materiais · ${fmtData(a.data)}</td><td class="n" data-l="Estoque">${fmt(tf,0)}</td><td class="n" data-l="R$/kg">${tf?fmt(tv/tf,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(tv,0)}</td><td class="n" data-l="Consumo">${fmt(tc,0)}</td><td colspan="3"></td></tr>`:"";
+}
+$("audXls").addEventListener("click",async()=>{
+  try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel.");return}
+  const filtro=[$("audGrupo").value||"Todos os tipos",$("audMat").value?descCod($("audMat").value):"Todos os materiais"].join(" · ");
+  const s1=[["CPM · Auditorias de estoque (sem SAP)"],["Filtro",filtro],["Gerado em",new Date().toLocaleString("pt-BR")],[],
+    ["Auditoria","Período do consumo","Consumo (kg)","Dias","kg/dia","Perda %","Perda estimada (kg)","Diferença (kg)","Estoque físico (kg)","Valor do estoque (R$)","Fora do padrão"]];
+  audLinhas.forEach(r=>s1.push([serialXL(r.a.data),r.a.periodoConsumo||"",r.consumo??"",r.dias??"",r.kgDia!=null?+r.kgDia.toFixed(1):"",r.perdaPct!=null?+(r.perdaPct/100).toFixed(4):"",r.perdaKg!=null?+r.perdaKg.toFixed(1):"",r.dif!=null?+r.dif.toFixed(1):"",+r.fisico.toFixed(1),+r.valor.toFixed(2),r.anom?"sim":""]));
+  const ws1=XLSX.utils.aoa_to_sheet(s1);
+  ws1["!cols"]=[{wch:12},{wch:24},{wch:13},{wch:6},{wch:9},{wch:8},{wch:18},{wch:14},{wch:17},{wch:19},{wch:13}];
+  for(let r=6;r<=s1.length;r++){const c=ws1["A"+r];if(c&&typeof c.v==="number")c.z="dd/mm/yyyy";["C","E","G","H","I"].forEach(k=>{if(ws1[k+r])ws1[k+r].z="#,##0"});if(ws1["F"+r])ws1["F"+r].z="0.0%";if(ws1["J"+r])ws1["J"+r].z='"R$" #,##0.00'}
+  const s2=[["Auditoria","Código","Material","Tipo","Estoque físico (kg)","R$/kg","Valor (R$)","Consumo (kg)","Perda %","Proposto %","Sobras %","Observação"]];
+  audLinhas.forEach(r=>itensFiltrados(r.a).forEach(i=>s2.push([serialXL(r.a.data),i.codigo,descCod(i.codigo),grupoCod(i.codigo),i.fisico??"",i.valorKg??"",i.fisico!=null&&i.valorKg!=null?+(i.fisico*i.valorKg).toFixed(2):"",i.consumo??"",i.perda??"",i.proposto??"",i.sobras??"",[i.propostoObs,i.obs,i.sobrasObs,anom(r.a,i)?"consumo fora do padrão":""].filter(Boolean).join(" · ")])));
+  const ws2=XLSX.utils.aoa_to_sheet(s2);
+  ws2["!cols"]=[{wch:12},{wch:10},{wch:32},{wch:24},{wch:17},{wch:8},{wch:13},{wch:13},{wch:8},{wch:10},{wch:9},{wch:30}];
+  for(let r=2;r<=s2.length;r++){if(ws2["A"+r])ws2["A"+r].z="dd/mm/yyyy";["E","H"].forEach(k=>{if(ws2[k+r])ws2[k+r].z="#,##0.000"});if(ws2["G"+r])ws2["G"+r].z='"R$" #,##0.00';["I","J","K"].forEach(k=>{if(ws2[k+r])ws2[k+r].z="0.0%"})}
+  ws2["!autofilter"]={ref:`A1:L${s2.length}`};
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws1,"Auditorias"); XLSX.utils.book_append_sheet(wb,ws2,"Materiais");
+  XLSX.writeFile(wb,`CPM auditorias ${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
 /* ===================== EXCEL MÊS A MÊS ===================== */
 $("mesXls").addEventListener("click",async()=>{
   try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel.");return}
@@ -913,14 +1132,14 @@ function mkChart(id,cfg,empty){
   if(!window.Chart){if(!chartWait++)loadChart().then(()=>renderHist(true)).catch(()=>{chartWait=0});return}
   const muted=css("--muted"),line=css("--line");
   Chart.defaults.font.family=css("--f-body"); Chart.defaults.color=muted;
-  cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:false,
+  cfg.options=Object.assign({locale:"pt-BR",responsive:true,maintainAspectRatio:false,animation:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+fmt(c.raw,2)+" kg"}}}},cfg.options||{});
   if(cfg.type!=="doughnut"){cfg.options.scales=cfg.options.scales||{};["x","y"].forEach(a=>{cfg.options.scales[a]=Object.assign({grid:{color:line},ticks:{color:muted},border:{color:line}},cfg.options.scales[a]||{})})}
   if(charts[id])charts[id].destroy();
   charts[id]=new Chart($(id),cfg);
 }
 function renderHist(force){
-  if(view!=="hist")return;
+  if(view!=="hist"||histModo!=="app")return;
   const sig=JSON.stringify(envios.map(e=>[e.numero,e.pesoTotal,e.secao,e.obs,e.enviadoPor,(e.itens||[]).length]))+histSec+$("histPer").value+barraPadrao+isAdm()+editing+askDel+histLimit;
   if(!force&&sig===lastSig)return; lastSig=sig;
   const rows=linhasHist(), envs=envFiltro(), t=somar(rows);
@@ -1105,7 +1324,7 @@ function entrar(user){
   if(!adm){st.secao=me.secao;$("secFix").innerHTML=`<span class="sec">${esc(me.secao)}</span> Seção ${esc(me.secao)}`;cenSec=me.secao;histSec=me.secao}
   else{cenSec="Todas";histSec="Todas"}
   $("cenSec").hidden=!adm; $("histSec").hidden=!adm; drawCenSec(); drawHistSec();
-  pendSig=""; lastSig=""; pend=[]; envios=[]; renderPend();
+  pendSig=""; lastSig=""; pend=[]; envios=[]; auds=null; histModo="app"; renderPend();
   showView("calc"); sync();
 }
 $("loginForm").addEventListener("submit",async ev=>{
