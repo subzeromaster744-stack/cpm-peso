@@ -1050,8 +1050,8 @@ function renderAudDet(){
   its.sort((x,y)=>ord==="codigo"?x.codigo.localeCompare(y.codigo):((y[ord]||0)-(x[ord]||0)));
   const pct=v=>v==null?"–":fmt(v*100,1)+"%";
   $("audDet").innerHTML=its.map(i=>`<tr><td>${esc(descCod(i.codigo))}<small><span class="code">${i.codigo}</span> · ${esc(grupoCod(i.codigo))}</small></td>
-    <td class="n" data-l="Estoque">${i.fisico!=null?fmt(i.fisico,0):"–"}</td><td class="n" data-l="SAP">${i.sap!=null?fmt(i.sap,0):"–"}</td>
-    <td class="n ${i.difSap<0?"up":i.difSap>0?"down":""}" data-l="Diferença"><b>${i.difSap!=null?sinal(i.difSap,0):"–"}</b></td><td class="n ${i.difSapR<0?"up":i.difSapR>0?"down":""}" data-l="R$ da diferença">${i.difSapR!=null?sinal(i.difSapR,0):"–"}</td><td class="n" data-l="R$/kg">${i.valorKg!=null?fmt(i.valorKg,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(i.valor,0)}</td>
+    <td class="n" data-l="Estoque">${i.fisico!=null?fmt(i.fisico,2):"–"}</td><td class="n" data-l="SAP">${i.sap!=null?fmt(i.sap,2):"–"}</td>
+    <td class="n ${i.difSap<0?"up":i.difSap>0?"down":""}" data-l="Diferença"><b>${i.difSap!=null?sinal(i.difSap,2):"–"}</b></td><td class="n ${i.difSapR<0?"up":i.difSapR>0?"down":""}" data-l="R$ da diferença">${i.difSapR!=null?sinal(i.difSapR,2):"–"}</td><td class="n" data-l="R$/kg">${i.valorKg!=null?fmt(i.valorKg,2):"–"}</td><td class="n" data-l="Valor R$">${fmt(i.valor,0)}</td>
     <td class="n" data-l="Consumo">${i.consumo!=null?fmt(i.consumo,0)+(anom(a,i)?' <span class="flag" title="Fora do padrão">⚠</span>':""):"–"}</td>
     <td class="n" data-l="Perda %">${pct(i.perda)}</td><td class="n" data-l="Proposto %">${pct(i.proposto)}</td>
     <td class="obs" data-l="Obs.">${esc([i.propostoObs,i.obs,i.sobrasObs].filter(Boolean).join(" · "))}${i.sobras!=null?` <span class="muted">sobras ${fmt(i.sobras*100,1)}%</span>`:""}</td></tr>`).join("")||'<tr><td colspan="11" class="muted">Nenhum material neste filtro.</td></tr>';
