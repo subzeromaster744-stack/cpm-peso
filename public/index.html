@@ -615,13 +615,14 @@ body.locked .login{display:grid}
 const MATS=[["Alumínio",2700],["Bronze",8800],["Cobre",8900],["Aço / Ferro",7850],["Latão",8500],["Celeron",1400],["Nylon",1140],["Fenolite",1350]];
 const ACO=3, SECOES=["A","B","C","D"];
 const GROUPS=[
- ["Aço 4140",[["10014609","BARRA RED SAE 4140 Ø 19,05mm BENEF",19.05],["10014636","BARRA RED SAE 4140 Ø 22,23mm BENEF",22.23],["10032376","BARRA RED SAE 4140 Ø 25,40mm BENEF",25.40],["10014637","BARRA RED SAE 4140 Ø 31,75mm BENEF",31.75],["10032360","BARRA RED SAE 4140 Ø 38,10mm BENEF",38.10]]],
- ["Aço Inox 420",[["10155716","BARRA RED AISI 420 Ø 19,05mm",19.05],["10155717","BARRA RED AISI 420 Ø 22,23mm",22.23],["10155718","BARRA RED AISI 420 Ø 25,40mm",25.40],["10155723","BARRA RED AISI 420 Ø 31,75mm",31.75],["10166300","BARRA RED AISI 420 Ø 38,10mm",38.10]]],
- ["Aço Inox 316",[["10166305","BARRA RED AISI 316 Ø 19,05mm",19.05],["10166306","BARRA RED AISI 316 Ø 22,23mm",22.23],["10166314","BARRA RED AISI 316 Ø 25,40mm",25.40],["10166296","BARRA RED AISI 316 Ø 31,75mm",31.75],["10166302","BARRA RED AISI 316 Ø 38,10mm",38.10]]],
- ["Aço Inox 304",[["10166324","BARRA RED AISI 304 Ø 19,05mm",19.05],["10166323","BARRA RED AISI 304 Ø 22,23mm",22.23],["10155726","BARRA RED AISI 304 Ø 25,40mm",25.40],["10155725","BARRA RED AISI 304 Ø 31,75mm",31.75],["10166311","BARRA RED AISI 304 Ø 38,10mm",38.10]]],
+ ["Aço 4140",[["10014609","BARRA RED SAE 4140 Ø 19,05mm BENEF",19.05],["10014636","BARRA RED SAE 4140 Ø 22,23mm BENEF",22.23],["10032376","BARRA RED SAE 4140 Ø 25,40mm BENEF",25.40],["10014637","BARRA RED SAE 4140 Ø 31,75mm BENEF",31.75],["10032360","BARRA RED SAE 4140 Ø 38,10mm BENEF",38.10],["10014630","BARRA RED SAE 4140 Ø 44,45mm BENEF",44.45],["10032361","BARRA RED SAE 4140 Ø 50,80mm BENEF",50.80],["10014638","BARRA RED SAE 4140 Ø 57,15mm BENEF",57.15],["10032358","BARRA RED SAE 4140 Ø 69,85mm BENEF",69.85],["10014627","BARRA RED SAE 4140 Ø 76,20mm BENEF",76.20]]],
+ ["Aço Inox 420",[["10155716","BARRA RED AISI 420 Ø 19,05mm",19.05],["10155717","BARRA RED AISI 420 Ø 22,23mm",22.23],["10155718","BARRA RED AISI 420 Ø 25,40mm",25.40],["10155723","BARRA RED AISI 420 Ø 31,75mm",31.75],["10166300","BARRA RED AISI 420 Ø 38,10mm",38.10],["10155719","BARRA RED AISI 420 Ø 44,45mm",44.45],["10155720","BARRA RED AISI 420 Ø 50,80mm",50.80],["10155721","BARRA RED AISI 420 Ø 57,15mm",57.15],["10155722","BARRA RED AISI 420 Ø 63,50mm",63.50],["10166298","BARRA RED AISI 420 Ø 69,85mm",69.85],["10155715","BARRA RED AISI 420 Ø 76,20mm",76.20]]],
+ ["Aço Inox 316",[["10166305","BARRA RED AISI 316 Ø 19,05mm",19.05],["10166306","BARRA RED AISI 316 Ø 22,23mm",22.23],["10166314","BARRA RED AISI 316 Ø 25,40mm",25.40],["10166296","BARRA RED AISI 316 Ø 31,75mm",31.75],["10155732","BARRA RED AISI 316 Ø 35,20mm",35.20],["10166302","BARRA RED AISI 316 Ø 38,10mm",38.10],["10166297","BARRA RED AISI 316 Ø 44,45mm",44.45],["10166304","BARRA RED AISI 316 Ø 50,80mm",50.80],["10166307","BARRA RED AISI 316 Ø 57,15mm",57.15],["12568745","BARRA RED AISI 316L Ø 63,50mm",63.50],["10155729","BARRA RED AISI 316 Ø 69,85mm",69.85],["10155737","BARRA RED AISI 316 Ø 76,20mm",76.20]]],
+ ["Aço Inox 304",[["10166324","BARRA RED AISI 304 Ø 19,05mm",19.05],["10166323","BARRA RED AISI 304 Ø 22,23mm",22.23],["10155726","BARRA RED AISI 304 Ø 25,40mm",25.40],["10155725","BARRA RED AISI 304 Ø 31,75mm",31.75],["10166311","BARRA RED AISI 304 Ø 38,10mm",38.10],["10155728","BARRA RED AISI 304 Ø 44,45mm",44.45],["10155734","BARRA RED AISI 304 Ø 50,80mm",50.80],["10166332","BARRA RED AISI 304 Ø 57,15mm",57.15],["11024711","BARRA RED AISI 304 Ø 69,85mm",69.85],["10166327","BARRA RED AISI 304 Ø 76,20mm",76.20]]],
  ["Trefilados SAE 1040",[["10432532","BARRA RED SAE 1040 Ø 12,80mm",12.80],["10014640","BARRA RED SAE 1040 Ø 17,15mm h9",17.15]]],
- ["Aço 1040",[["10014612","BARRA RED SAE 1040 Ø 18,00mm",18.00],["10014613","BARRA RED SAE 1040 Ø 19,05mm",19.05],["10014614","BARRA RED SAE 1040/45 Ø 22,23mm",22.23],["10014615","BARRA RED SAE 1040 Ø 25,40mm",25.40],["10014616","BARRA RED SAE 1040 Ø 31,75mm",31.75],["10014617","BARRA RED SAE 1040 Ø 38,10mm",38.10]]],
- ["Trefilados SAE 1040/45 h9",[["16965336","BARRA RED SAE 1040/45 Ø 16,10mm h9",16.10],["16965337","BARRA RED SAE 1040/45 Ø 21,10mm h9",21.10],["16966160","BARRA RED SAE 1040/45 Ø 24,10mm h9",24.10],["17214933","BARRA RED SAE 1040/45 Ø 30,10mm h9",30.10],["17214934","BARRA RED SAE 1040/45 Ø 35,10mm h9",35.10]]]
+ ["Aço 1040",[["10014612","BARRA RED SAE 1040 Ø 18,00mm",18.00],["10014613","BARRA RED SAE 1040 Ø 19,05mm",19.05],["10014614","BARRA RED SAE 1040/45 Ø 22,23mm",22.23],["10014615","BARRA RED SAE 1040 Ø 25,40mm",25.40],["10014616","BARRA RED SAE 1040 Ø 31,75mm",31.75],["10014617","BARRA RED SAE 1040 Ø 38,10mm",38.10],["10014618","BARRA RED SAE 1040 Ø 44,45mm",44.45],["10014619","BARRA RED SAE 1040 Ø 50,00mm",50.00],["10014620","BARRA RED SAE 1040 Ø 55,00mm",55.00],["10014621","BARRA RED SAE 1040 Ø 68,26mm",68.26],["10014622","BARRA RED SAE 1040 Ø 75,00mm",75.00]]],
+ ["Trefilados SAE 1040/45 h9",[["16965336","BARRA RED SAE 1040/45 Ø 16,10mm h9",16.10],["16965337","BARRA RED SAE 1040/45 Ø 21,10mm h9",21.10],["16966160","BARRA RED SAE 1040/45 Ø 24,10mm h9",24.10],["17214933","BARRA RED SAE 1040/45 Ø 30,10mm h9",30.10],["17214934","BARRA RED SAE 1040/45 Ø 35,10mm h9",35.10]]],
+ ["Aço 416 / V630 laminado",[["10225700","BARRA RED AISI 416 LAM Ø 50,80mm",50.80],["10166309","BARRA RED AISI V630 LAM Ø 50,80mm",50.80]]]
 ];
 const ITEMS={}; GROUPS.forEach(([g,list],gi)=>list.forEach(([code,desc,D])=>ITEMS[code]={code,desc,D,mat:ACO,grupo:g,gi}));
 
@@ -1160,32 +1161,38 @@ function lerPlanilhaAuditoria(wb){
     const t=txt(v); if(!t||/^(x+|-|–)$/i.test(t))return null;
     const m=t.match(/^(\d{1,3}(?:,\d{3})*)(-?)$/);   // número do SAP como texto: "51,476,740" ou "34,990-"
     if(m){const p=m[1].split(","),val=p.length>1?parseFloat(p.slice(0,-1).join("")+"."+p[p.length-1]):parseFloat(p[0]);convertidos.push(`${onde}: "${t}" lido como ${fmt(m[2]?-val:val,3)}`);return m[2]?-val:val}
+    const b=t.match(/^(\d{1,3}(?:\.\d{3})*,\d+)(-?)$/);   // número brasileiro como texto: "60.913,558-"
+    if(b){const val=parseFloat(b[1].replace(/\./g,"").replace(",","."));convertidos.push(`${onde}: "${t}" lido como ${fmt(b[2]?-val:val,3)}`);return b[2]?-val:val}
     if(/^-?\d+(?:[.,]\d+)?$/.test(t))return parseFloat(t.replace(",","."));
     return undefined; // texto que não é número
   };
   wb.SheetNames.forEach(nome=>{
     const ws=wb.Sheets[nome], rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
-    if(rows.length<4)return;
-    const larg=Math.max(...rows.slice(0,4).map(r=>r.length));
+    if(rows.length<3)return;
+    const larg=Math.max(...rows.slice(0,5).map(r=>r.length));
     const cel=(r,c)=>(rows[r]||[])[c];
-    const fis=[]; for(let c=0;c<larg;c++)if(txt(cel(2,c)).toLowerCase()==="físico")fis.push(c);
+    const sem=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+    let hr=-1, fis=[];
+    for(let r=0;r<5&&hr<0;r++){const f=[];for(let c=0;c<larg;c++)if(/^fisico\b/.test(sem(txt(cel(r,c)))))f.push(c);if(f.length){hr=r;fis=f}}
     if(!fis.length)return;
-    const linhas=[]; for(let r=3;r<rows.length;r++){const cod=txt(cel(r,1)).split(".")[0];if(/^\d{4,12}$/.test(cod))linhas.push([r,cod])}
+    const linhas=[]; for(let r=hr+1;r<rows.length;r++){const cod=txt(cel(r,1)).split(".")[0];if(/^\d{4,12}$/.test(cod))linhas.push([r,cod])}
     fis.forEach((c0,k)=>{
-      const c1=k+1<fis.length?fis[k+1]:larg, data=dataDe(cel(0,c0));
+      const c1=k+1<fis.length?fis[k+1]:larg; let data=null;
+      for(let c=c0;c<c1&&!data;c++)data=dataDe(cel(0,c));
       if(!data){avisos.push(`Coluna ${L(c0)} (${nome}): bloco sem data de auditoria, ignorado.`);return}
       const cols={}; let periodo="";
       for(let c=c0+1;c<c1;c++){
-        const h=[0,1,2].map(r=>txt(cel(r,c))).join(" ").toLowerCase().trim();
+        const faixa=[...Array(hr+1).keys()], h=faixa.map(r=>txt(cel(r,c))).join(" ").toLowerCase().trim(), hh=sem(txt(cel(hr,c)));
         if(!h)continue;
-        if(h==="sap")cols.sap=c;
-        else if(h.includes("valor unit")||h==="valor")cols.valorKg=c;
-        else if(h.includes("% perda"))cols.perda=c;
-        else if(h.includes("prop"))cols.proposto=c;
-        else if(h.includes("consumo")){cols.consumo=c;periodo=[0,1,2].map(r=>txt(cel(r,c))).join(" ").replace(/consumo\s*\(kg\)\s*/i,"").trim()}
+        if(h==="sap"||/^sap\b/.test(hh))cols.sap=c;
+        else if(h.includes("valor unit")||h==="valor"||hh.startsWith("preco"))cols.valorKg=c;
+        else if(h.includes("% perda")||hh==="%")cols.perda=c;
+        else if(h.includes("prop")||hh.includes("indicado"))cols.proposto=c;
+        else if(h.includes("consumo")){cols.consumo=c;periodo=faixa.map(r=>txt(cel(r,c))).join(" ").trim().replace(/consumo\s*\(kg\)\s*/i,"").replace(/^consumo$/i,"").trim()}
         else if(h.includes("sobras"))cols.sobras=c;
+        else if(hh.startsWith("sugest")||hh.startsWith("obs"))cols.obs=c;
       }
-      if(cols.consumo!=null&&cols.consumo+1<c1){
+      if(cols.obs==null&&cols.consumo!=null&&cols.consumo+1<c1){
         const cc=cols.consumo+1;
         if(!txt(cel(0,cc))&&!txt(cel(1,cc))&&linhas.every(([r])=>cel(r,cc)==null||typeof cel(r,cc)==="string")&&linhas.some(([r])=>txt(cel(r,cc))))cols.obs=cc;
       }
@@ -1195,8 +1202,8 @@ function lerPlanilhaAuditoria(wb){
         const pega=k=>{if(cols[k]==null)return null;const v=numero(cel(r,cols[k]),L(cols[k])+(r+1));if(v===undefined){const t=txt(cel(r,cols[k]));if(k==="proposto"){if(t.toLowerCase()!=="x"){i.propostoObs=t;const m=t.match(/(\d+(?:[.,]\d+)?)\s*%/);if(m)return parseFloat(m[1].replace(",","."))/100}}else if(k==="sobras"){i.sobrasObs=t}else avisos.push(`${L(cols[k])}${r+1} (${fmtData(data)}, ${codigo}): "${t}" não é número, ignorado.`);return null}return v};
         const fisico=numero(cel(r,c0),L(c0)+(r+1));
         if(fisico!=null)i.fisico=+fisico.toFixed(3); else if(fisico===undefined)avisos.push(`${L(c0)}${r+1} (${fmtData(data)}, ${codigo}): "${txt(cel(r,c0))}" não é número, ignorado.`);
-        [["sap",3],["valorKg",4],["perda",4],["proposto",4],["consumo",3],["sobras",4]].forEach(([k,d])=>{const v=pega(k);if(v!=null)i[k]=+v.toFixed(d)});
-        if(cols.obs!=null&&txt(cel(r,cols.obs)))i.obs=txt(cel(r,cols.obs));
+        [["sap",3],["valorKg",4],["perda",4],["proposto",4],["consumo",3],["sobras",4]].forEach(([k,d])=>{let v=pega(k);if(v!=null){if(k==="consumo"&&v<0)v=-v;i[k]=+v.toFixed(d)}});
+        if(cols.obs!=null&&typeof cel(r,cols.obs)==="string"&&txt(cel(r,cols.obs)))i.obs=txt(cel(r,cols.obs));
         if(["fisico","sap","valorKg","perda","proposto","consumo","sobras"].some(k=>i[k]!=null))itens.push(i);
       });
       if(!itens.length)return;
@@ -1216,13 +1223,13 @@ $("audFile").addEventListener("change",async e=>{
     await loadXLSX();
     const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
     const r=lerPlanilhaAuditoria(wb);
-    if(!r.auditorias.length){$("impBox").innerHTML=`<p><b>Nenhuma auditoria encontrada em ${esc(f.name)}.</b> A planilha precisa ter, na 3ª linha, as colunas “Físico” (e “SAP”) de cada auditoria, com a data na 1ª linha.</p><div class="row"><button type="button" class="btn quiet sm" id="impNo">Fechar</button></div>`;$("impNo").onclick=()=>{$("impBox").hidden=true};return}
-    const exist=new Set((auds||[]).map(a=>a.id)), novas=r.auditorias.filter(a=>!exist.has(a.id)).length;
+    if(!r.auditorias.length){$("impBox").innerHTML=`<p><b>Nenhuma auditoria encontrada em ${esc(f.name)}.</b> A planilha precisa ter, numa das primeiras linhas, as colunas “Físico” (e “SAP”) de cada auditoria, com a data na 1ª linha.</p><div class="row"><button type="button" class="btn quiet sm" id="impNo">Fechar</button></div>`;$("impNo").onclick=()=>{$("impBox").hidden=true};return}
+    const meses=new Set((auds||[]).map(a=>a.data.slice(0,7))), novas=r.auditorias.filter(a=>!meses.has(a.data.slice(0,7))).length;
     const nItens=r.auditorias.reduce((x,a)=>x+a.itens.length,0), nSap=r.auditorias.filter(a=>a.temSap).length;
     impPend={auditorias:r.auditorias.map(({temSap,...a})=>({...a,fonte:f.name}))};
     const lista=[...r.convertidos.map(t=>"Número em texto: "+t),...r.avisos];
     $("impBox").innerHTML=`<p><b>${esc(f.name)}:</b> ${r.auditorias.length} auditorias (${fmtData(r.auditorias[0].data)} a ${fmtData(r.auditorias[r.auditorias.length-1].data)}), ${nItens} linhas de material, ${nSap} com SAP.<br>
-      ${novas} ${novas===1?"nova":"novas"} e ${r.auditorias.length-novas} já no histórico (essas serão substituídas pelos dados da planilha).</p>
+      ${novas} ${novas===1?"nova":"novas"} e ${r.auditorias.length-novas} ${r.auditorias.length-novas===1?"entra":"entram"} na auditoria do mesmo mês que já está no histórico (material com o mesmo código é atualizado; os outros ficam como estão).</p>
       ${lista.length?`<details><summary>${lista.length} ${lista.length===1?"observação":"observações"} da leitura</summary><ul>${lista.slice(0,80).map(t=>`<li>${esc(t)}</li>`).join("")}</ul></details>`:""}
       <div class="row"><button type="button" class="btn sm" id="impOk">Importar para o histórico</button><button type="button" class="btn quiet sm" id="impNo">Cancelar</button></div>`;
     $("impNo").onclick=()=>{impPend=null;$("impBox").hidden=true};

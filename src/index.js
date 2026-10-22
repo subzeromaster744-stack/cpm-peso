@@ -270,14 +270,18 @@ async function api(request, env, path, method) {
     const rows = await listDocs(env, "auditorias");
     return json(rows.map((r) => r.data).sort((a, b) => String(a.data).localeCompare(String(b.data))));
   }
-  // importação da planilha de auditoria (lida no navegador): grava ou atualiza cada auditoria pela data
+  // importação da planilha de auditoria (lida no navegador).
+  // Cada auditoria entra na auditoria do mesmo mês, se já existir: material igual (mesmo código) é atualizado,
+  // os outros ficam como estão. Mês sem auditoria vira auditoria nova, com a data da planilha.
   if (path === "/api/auditorias/importar" && method === "POST") {
     if (!admin) return fail("só o admin pode importar auditorias", 403);
     const lista = Array.isArray(body?.auditorias) ? body.auditorias : null;
     if (!lista || !lista.length || lista.length > 200) return fail("nenhuma auditoria para importar", 400);
     const NUM = ["fisico", "sap", "valorKg", "perda", "proposto", "consumo", "sobras"];
     const TXT = ["obs", "propostoObs", "sobrasObs"];
-    const limpas = [];
+    const atuais = new Map((await listDocs(env, "auditorias")).map((r) => [r.id, r.data]));
+    const porMes = new Map(); for (const [id, d] of atuais) porMes.set(String(d.data).slice(0, 7), id);
+    const mexidas = new Map(); let novas = 0, atualizadas = 0;
     for (const a of lista) {
       if (!a || !/^\d{4}-\d{2}-\d{2}$/.test(a.data || "") || !Array.isArray(a.itens) || !a.itens.length || a.itens.length > 500)
         return fail("auditoria inválida: " + (a && a.data), 400);
@@ -287,18 +291,20 @@ async function api(request, env, path, method) {
         for (const k of TXT) if (typeof i[k] === "string" && i[k].trim()) o[k] = i[k].trim().slice(0, 120);
         return o;
       }).filter((i) => /^\d{4,12}$/.test(i.codigo));
-      const doc = {
-        id: "AUD-" + a.data.replace(/-/g, ""), data: a.data,
-        periodoConsumo: String(a.periodoConsumo || "").slice(0, 80),
-        fonte: String(a.fonte || "").slice(0, 120), importadoEm: Date.now(), importadoPor: me.nome, itens,
-      };
+      const mes = a.data.slice(0, 7), id = porMes.get(mes) || "AUD-" + a.data.replace(/-/g, "");
+      let doc = mexidas.get(id) || atuais.get(id);
+      if (!doc) { novas++; doc = { id, data: a.data, periodoConsumo: "", itens: [] }; porMes.set(mes, id); }
+      else if (!mexidas.has(id)) atualizadas++;
+      const m = new Map((doc.itens || []).map((i) => [i.codigo, i]));
+      for (const i of itens) m.set(i.codigo, i);
+      doc = { ...doc, itens: [...m.values()], importadoEm: Date.now(), importadoPor: me.nome,
+        periodoConsumo: doc.periodoConsumo || String(a.periodoConsumo || "").slice(0, 80),
+        fonte: [...new Set([...String(doc.fonte || "").split(" + "), String(a.fonte || "").slice(0, 120)].filter(Boolean))].join(" + ").slice(0, 240) };
       if (JSON.stringify(doc).length > 300_000) return fail("auditoria grande demais: " + a.data, 400);
-      limpas.push(doc);
+      mexidas.set(id, doc);
     }
-    const existentes = new Set((await listDocs(env, "auditorias")).map((r) => r.id));
-    await env.DB.batch(limpas.map((d) => putStmt(env, "auditorias", d.id, d)));
-    const novas = limpas.filter((d) => !existentes.has(d.id)).length;
-    return json({ ok: true, novas, atualizadas: limpas.length - novas });
+    await env.DB.batch([...mexidas.values()].map((d) => putStmt(env, "auditorias", d.id, d)));
+    return json({ ok: true, novas, atualizadas });
   }
   // exclui todas as auditorias de uma vez (o navegador exige confirmação digitada)
   if (path === "/api/auditorias/excluir-todas" && method === "POST") {
