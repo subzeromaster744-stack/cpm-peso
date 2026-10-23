@@ -718,7 +718,7 @@ try{const v=JSON.parse(LS.get("cpm-calc","null"));if(v){
 const salvarCalc=()=>LS.set("cpm-calc",JSON.stringify({mode:st.mode,src:st.src,code:st.code,shape:st.shape,mat:st.mat,dims:st.dims,comp:num($("comp").value)}));
 
 // materiais de cada seção = os da planilha de auditoria com o mesmo nome (Eixos A, B, C); seção sem planilha vê todos
-const SEC_COD={"B":["10014609","10014612","10014613","10014614","10014615","10014616","10014617","10014636","10014637","10014640","10032360","10032376","10155716","10155717","10155718","10155723","10155725","10155726","10166296","10166300","10166302","10166305","10166306","10166311","10166314","10166323","10166324","10432532","16965336","16965337","16966160","17214933","17214934"],"C":["10014630","10032361","10014638","10032358","10014627","10155728","10155734","10166332","11024711","10166327","10155732","10166297","10166304","10166307","12568745","10155729","10155737","10155719","10155720","10155721","10155722","10166298","10155715","10225700","10166309","10014618","10014619","10014620","10014621","10014622"],"A":["17310988","10014623","10014624","10014625","10014645","10393960","10014626","10014628","10323668","10014641","10014642","10032371","10323672","10323673","10323674","10323675","13955484","10166301","10166322","11430248","10155724","10155736","10155730","12144812"]};
+const SEC_COD={"A":["17310988","10014623","10014624","10014625","10014645","10393960","10014626","10014628","10323668","10014641","10014642","10032371","10323672","10323673","10323674","10323675","13955484","10166301","10166322","11430248","10155724","10155736","10155730","12144812"],"B":["10014609","10014636","10032376","10014637","10032360","10155716","10155717","10155718","10155723","10166300","10166305","10166306","10166314","10166296","10166302","10166324","10166323","10155726","10155725","10166311","10432532","10014640","10014612","10014613","10014614","10014615","10014616","10014617","16965336","16965337","16966160","17214933","17214934"],"C":["10014630","10032361","10014638","10032358","10014627","10155728","10155734","10166332","11024711","10166327","10155732","10166297","10166304","10166307","12568745","10155729","10155737","10155719","10155720","10155721","10155722","10166298","10155715","10225700","10166309","10014618","10014619","10014620","10014621","10014622"]}; // na ordem das linhas de cada planilha
 const SEC_DE_COD=new Map(Object.entries(SEC_COD).flatMap(([s,l])=>l.map(c=>[c,s])));
 const secCalc=()=>isAdm()||!me?st.secao:me.secao;
 const naSecCalc=c=>!SEC_COD[secCalc()]||SEC_DE_COD.get(c)===secCalc()||!SEC_DE_COD.has(c);
@@ -967,26 +967,34 @@ $("btnConfirmar").addEventListener("click",async()=>{
 });
 
 /* ===================== EXCEL ===================== */
+// Excel do envio: uma aba por seção; cada aba lista os materiais da seção na ordem da planilha dela
+// (mesmo os não pedidos, em branco). Pedido fora da lista e medida livre entram no fim, na ordem do envio.
 async function exportar(e){
-  try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel. Verifique a conexão e baixe pelo Histórico.");return}
-  const gs=agrupar(e.itens||[]), porCod=new Map(), livres=[];
-  gs.forEach(g=>{if(g.codigo&&ITEMS[g.codigo]){const a=porCod.get(g.codigo)||{qtd:0,kg:0,comp:0,cortes:[],secs:new Set(),material:g.material};
-      a.qtd+=g.qtd;a.kg+=g.pesoTotal;a.comp+=g.compTotal;a.cortes.push((g.secao?g.secao+": ":"")+g.cortesTxt);if(g.secao)a.secs.add(g.secao);porCod.set(g.codigo,a)}
-    else livres.push(g)});
-  const aoa=[["CPM · Solicitação de materiais"],["Envio",e.numero],["Data",new Date(e.enviadoEm).toLocaleString("pt-BR")],
-    ["Seção",e.secao&&e.secao!=="Todas"?"Seção "+e.secao:"Todas"],["Enviado por",e.enviadoPor||""],["Observação",e.obs||""],[],
-    ["Nº","Grupo","Código","Descrição","Material","Ø (mm)","Seções","Cortes (qtd × mm)","Peças","Comp. total (mm)","Kg total"]];
-  const hdr=aoa.length; let n=0;
-  GROUPS.forEach(([g,list])=>list.forEach(([code,desc,D])=>{const a=porCod.get(code);
-    aoa.push(a?[++n,g,code,desc,a.material,D,[...a.secs].sort().join(", "),a.cortes.join(" | "),a.qtd,Math.round(a.comp),+a.kg.toFixed(3)]:[++n,g,code,desc,MATS[ACO][0],D,"","","","",""])}));
-  livres.forEach(g=>aoa.push([++n,"Medida livre",g.codigo,g.base,g.material,"",g.secao,g.cortesTxt,g.qtd,Math.round(g.compTotal),+g.pesoTotal.toFixed(3)]));
-  const r0=hdr+1,r1=aoa.length,t=totaisG(gs);
-  aoa.push(["","","","","","","","Total",{t:"n",f:`SUM(I${r0}:I${r1})`,v:t.qtd},{t:"n",f:`SUM(J${r0}:J${r1})`,v:Math.round(t.comp)},{t:"n",f:`SUM(K${r0}:K${r1})`,v:+t.kg.toFixed(3)}]);
-  const ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"]=[{wch:5},{wch:24},{wch:11},{wch:40},{wch:13},{wch:8},{wch:9},{wch:30},{wch:8},{wch:15},{wch:11}];
-  ws["!autofilter"]={ref:`A${hdr}:K${r1}`};
-  for(let r=r0;r<=r1+1;r++){const c=ws["K"+r];if(c&&typeof c.v==="number")c.z="0.000"}
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Pedido");
+  try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel. Verifique a conexão e tente de novo.");return}
+  const itens=(e.itens||[]).map(r=>({...r,secao:secItem(r,e)||"-"}));
+  let secs=[...new Set(itens.map(r=>r.secao))].sort((a,b)=>a.localeCompare(b));
+  if(!secs.length)secs=e.secao&&SECOES.includes(e.secao)?[e.secao]:Object.keys(SEC_COD).sort();
+  const wb=XLSX.utils.book_new(); let tot={qtd:0,kg:0};
+  secs.forEach(sec=>{
+    const doSec=itens.filter(r=>r.secao===sec), gs=agrupar(doSec), lista=SEC_COD[sec]||[];
+    const porCod=new Map(); gs.forEach(g=>{if(g.codigo&&lista.includes(g.codigo)){const a=porCod.get(g.codigo)||{qtd:0,kg:0,comp:0,cortes:[],material:g.material};a.qtd+=g.qtd;a.kg+=g.pesoTotal;a.comp+=g.compTotal;a.cortes.push(g.cortesTxt);porCod.set(g.codigo,a)}});
+    // o que não está na lista da seção, na ordem em que foi enviado
+    const fora=[]; doSec.forEach(r=>{const g=gs.find(x=>x.key===keyMat(r));if(g&&!(g.codigo&&lista.includes(g.codigo))&&!fora.includes(g))fora.push(g)});
+    const aoa=[[`CPM · Solicitação de materiais · ${sec==="-"?"Sem seção":"Seção "+sec}`],["Envio",e.numero],["Data",new Date(e.enviadoEm).toLocaleString("pt-BR")],
+      ["Enviado por",e.enviadoPor||""],["Observação",e.obs||""],[],
+      ["Nº","Código","Descrição","Tipo de aço","Material","Ø (mm)","Cortes (qtd × mm)","Peças","Comp. total (mm)","Kg total"]];
+    const hdr=aoa.length; let n=0;
+    lista.forEach(c=>{const it=ITEMS[c]||{desc:"",grupo:"",D:""},a=porCod.get(c);
+      aoa.push(a?[++n,c,it.desc,it.grupo,a.material,it.D,a.cortes.join(" | "),a.qtd,Math.round(a.comp),+a.kg.toFixed(3)]:[++n,c,it.desc,it.grupo,MATS[ACO][0],it.D,"","","",""])});
+    fora.forEach(g=>{const it=ITEMS[g.codigo];aoa.push([++n,g.codigo,g.base,it?it.grupo:"Medida livre",g.material,it?it.D:"",g.cortesTxt,g.qtd,Math.round(g.compTotal),+g.pesoTotal.toFixed(3)])});
+    const r0=hdr+1,r1=Math.max(aoa.length,r0),t=totaisG(gs); tot.qtd+=t.qtd; tot.kg+=t.kg;
+    aoa.push(["","","","","","","Total",{t:"n",f:`SUM(H${r0}:H${r1})`,v:t.qtd},{t:"n",f:`SUM(I${r0}:I${r1})`,v:Math.round(t.comp)},{t:"n",f:`SUM(J${r0}:J${r1})`,v:+t.kg.toFixed(3)}]);
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"]=[{wch:5},{wch:11},{wch:40},{wch:22},{wch:13},{wch:8},{wch:30},{wch:8},{wch:15},{wch:11}];
+    ws["!autofilter"]={ref:`A${hdr}:J${r1}`};
+    for(let r=r0;r<=r1+1;r++){const c=ws["J"+r];if(c&&typeof c.v==="number")c.z="0.000"}
+    XLSX.utils.book_append_sheet(wb,ws,sec==="-"?"Sem seção":"Seção "+sec);
+  });
   XLSX.writeFile(wb,`Pedido ${e.numero}.xlsx`);
 }
 
