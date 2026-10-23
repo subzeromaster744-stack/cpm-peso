@@ -992,13 +992,21 @@ const SEC_AUD_NOME={1:"Seção 1 · até 38 mm",2:"Seção 2 · 44–76 mm",3:"S
 const SEC_AUD_COD=new Map([["10014609","10014612","10014613","10014614","10014615","10014616","10014617","10014636","10014637","10014640","10032360","10032376","10155716","10155717","10155718","10155723","10155725","10155726","10166296","10166300","10166302","10166305","10166306","10166311","10166314","10166323","10166324","10432532","16965336","16965337","16966160","17214933","17214934"],["10014630","10032361","10014638","10032358","10014627","10155728","10155734","10166332","11024711","10166327","10155732","10166297","10166304","10166307","12568745","10155729","10155737","10155719","10155720","10155721","10155722","10166298","10155715","10225700","10166309","10014618","10014619","10014620","10014621","10014622"],["17310988","10014623","10014624","10014625","10014645","10393960","10014626","10014628","10323668","10014641","10014642","10032371","10323672","10323673","10323674","10323675","13955484","10166301","10166322","11430248","10155724","10155736","10155730","12144812"]].flatMap((l,k)=>l.map(c=>[c,k+1])));
 // material novo, fora das planilhas conhecidas: vai pela bitola
 const secAud=c=>SEC_AUD_COD.get(c)||(ITEMS[c]?(ITEMS[c].D<=38.1?1:ITEMS[c].D<=76.2?2:3):0);
-let audSecSel="Todas";
+// seção do material: a gravada na importação (nome da planilha); sem ela, a das 3 primeiras planilhas
+const secAudItem=i=>i.secao||SEC_AUD_NOME[secAud(i.codigo)]||"Sem seção";
+let audSecSel="Todas", secPorCod=new Map(), secLista=[];
+function montarSecoes(){
+  secPorCod=new Map(); (auds||[]).forEach(a=>a.itens.forEach(i=>{const s=secAudItem(i),l=secPorCod.get(i.codigo)||new Set();l.add(s);secPorCod.set(i.codigo,l)}));
+  secLista=[...new Set([...secPorCod.values()].flatMap(l=>[...l]))].sort((a,b)=>a.localeCompare(b,"pt-BR",{numeric:true}));
+  if(audSecSel!=="Todas"&&!secLista.includes(audSecSel))audSecSel="Todas";
+}
 const drawAudSec=()=>{
-  const el=$("audSec");
-  el.innerHTML=["Todas",1,2,3].map(s=>`<button type="button" class="chip" data-s="${s}" aria-pressed="${String(s)===String(audSecSel)}">${s==="Todas"?"Todas as seções":SEC_AUD_NOME[s]}</button>`).join("");
-  el.onclick=e=>{const b=e.target.closest("[data-s]");if(!b)return;audSecSel=b.dataset.s;drawAudSec();fillAudGrupo();fillAudMat();renderAud()};
+  const el=$("audSec"), ops=["Todas",...secLista];
+  el.hidden=secLista.length<2;
+  el.innerHTML=ops.map((s,k)=>`<button type="button" class="chip" data-k="${k}" aria-pressed="${s===audSecSel}">${esc(s==="Todas"?"Todas as seções":s)}</button>`).join("");
+  el.onclick=e=>{const b=e.target.closest("[data-k]");if(!b)return;audSecSel=ops[+b.dataset.k];drawAudSec();fillAudGrupo();fillAudMat();renderAud()};
 };
-const naSec=c=>audSecSel==="Todas"||String(secAud(c))===audSecSel;
+const naSec=c=>audSecSel==="Todas"||(secPorCod.get(c)||new Set([SEC_AUD_NOME[secAud(c)]])).has(audSecSel);
 function fillAudGrupo(){
   const cur=$("audGrupo").value, gs=GROUPS.filter(([,l])=>l.some(([c])=>naSec(c))).map(([g])=>g);
   $("audGrupo").innerHTML='<option value="">Todos os tipos</option>'+gs.map(g=>`<option>${g}</option>`).join("");
@@ -1036,13 +1044,14 @@ async function loadAuditorias(){
     const med=new Map([...porMat].map(([c,l])=>{l=l.slice().sort((x,y)=>x-y);return[c,l[Math.floor(l.length/2)]]}));
     audAnom=new Set();
     auds.forEach(a=>a.itens.forEach(i=>{if(i.consumo>1000&&i.consumo>20*(med.get(i.codigo)||Infinity))audAnom.add(a.id+"|"+i.codigo)}));
+    montarSecoes(); drawAudSec(); fillAudGrupo(); fillAudMat();
     renderAud();
   }catch(e){if(e.status!==401)$("audTbl").innerHTML='<tr><td colspan="10" class="muted">Não foi possível carregar as auditorias.</td></tr>'}
 }
 const anom=(a,i)=>audAnom.has(a.id+"|"+i.codigo);
 function itensFiltrados(a){
   const g=$("audGrupo").value, m=$("audMat").value;
-  return a.itens.filter(i=>naSec(i.codigo)&&(!g||grupoCod(i.codigo)===g)&&(!m||i.codigo===m));
+  return a.itens.filter(i=>(audSecSel==="Todas"||secAudItem(i)===audSecSel)&&(!g||grupoCod(i.codigo)===g)&&(!m||i.codigo===m));
 }
 function resumoAud(a,prev){
   const its=itensFiltrados(a), temCons=its.some(i=>"consumo" in i);
@@ -1147,7 +1156,7 @@ function renderAudDet(){
 }
 $("audXls").addEventListener("click",async()=>{
   try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel.");return}
-  const filtro=[audSecSel==="Todas"?"Todas as seções":SEC_AUD_NOME[audSecSel],$("audGrupo").value||"Todos os tipos",$("audMat").value?descCod($("audMat").value):"Todos os materiais"].join(" · ");
+  const filtro=[audSecSel==="Todas"?"Todas as seções":audSecSel,$("audGrupo").value||"Todos os tipos",$("audMat").value?descCod($("audMat").value):"Todos os materiais"].join(" · ");
   const s1=[["CPM · Auditorias de estoque"],["Filtro",filtro],["Gerado em",new Date().toLocaleString("pt-BR")],[],
     ["Auditoria","Período do consumo","Consumo (kg)","Dias","kg/dia","Perda %","Perda estimada (kg)","Variação do consumo (kg)","Estoque físico (kg)","SAP (kg)","Diferença físico − SAP (kg)","R$ da diferença","Valor do estoque (R$)","Fora do padrão"]];
   audLinhas.forEach(r=>s1.push([serialXL(r.a.data),r.a.periodoConsumo||"",r.consumo??"",r.dias??"",r.kgDia!=null?+r.kgDia.toFixed(1):"",r.perdaPct!=null?+(r.perdaPct/100).toFixed(4):"",r.perdaKg!=null?+r.perdaKg.toFixed(1):"",r.dif!=null?+r.dif.toFixed(1):"",+r.fisico.toFixed(1),r.sap!=null?+r.sap.toFixed(1):"",r.difSap!=null?+r.difSap.toFixed(1):"",r.difSapR!=null?+r.difSapR.toFixed(2):"",+r.valor.toFixed(2),r.anom?"sim":""]));
@@ -1248,14 +1257,19 @@ $("audFile").addEventListener("change",async e=>{
     if(!r.auditorias.length){$("impBox").innerHTML=`<p><b>Nenhuma auditoria encontrada em ${esc(f.name)}.</b> A planilha precisa ter, numa das primeiras linhas, as colunas “Físico” (e “SAP”) de cada auditoria, com a data na 1ª linha.</p><div class="row"><button type="button" class="btn quiet sm" id="impNo">Fechar</button></div>`;$("impNo").onclick=()=>{$("impBox").hidden=true};return}
     const meses=new Set((auds||[]).map(a=>a.data.slice(0,7))), novas=r.auditorias.filter(a=>!meses.has(a.data.slice(0,7))).length;
     const nItens=r.auditorias.reduce((x,a)=>x+a.itens.length,0), nSap=r.auditorias.filter(a=>a.temSap).length;
+    const secNome=f.name.replace(/\.[^.]+$/,"").replace(/^[0-9a-f]{8}-/i,"").replace(/[_]+/g," ").trim().slice(0,60);
     impPend={auditorias:r.auditorias.map(({temSap,...a})=>({...a,fonte:f.name}))};
     const lista=[...r.convertidos.map(t=>"Número em texto: "+t),...r.avisos];
     $("impBox").innerHTML=`<p><b>${esc(f.name)}:</b> ${r.auditorias.length} auditorias (${fmtData(r.auditorias[0].data)} a ${fmtData(r.auditorias[r.auditorias.length-1].data)}), ${nItens} linhas de material, ${nSap} com SAP.<br>
       ${novas} ${novas===1?"nova":"novas"} e ${r.auditorias.length-novas} ${r.auditorias.length-novas===1?"entra":"entram"} na auditoria do mesmo mês que já está no histórico (material com o mesmo código é atualizado; os outros ficam como estão).</p>
       ${lista.length?`<details><summary>${lista.length} ${lista.length===1?"observação":"observações"} da leitura</summary><ul>${lista.slice(0,80).map(t=>`<li>${esc(t)}</li>`).join("")}</ul></details>`:""}
+      <label class="f" for="impSec">Seção destes materiais <span class="muted" style="font-weight:500">(vem do nome da planilha)</span><span class="inp"><input id="impSec" class="txt" maxlength="60" value="${esc(secNome)}"></span></label>
       <div class="row"><button type="button" class="btn sm" id="impOk">Importar para o histórico</button><button type="button" class="btn quiet sm" id="impNo">Cancelar</button></div>`;
     $("impNo").onclick=()=>{impPend=null;$("impBox").hidden=true};
     $("impOk").onclick=async()=>{
+      const sec=$("impSec").value.trim().slice(0,60);
+      if(!sec){toast("Informe a seção.");$("impSec").focus();return}
+      impPend.auditorias.forEach(a=>a.itens.forEach(i=>i.secao=sec));
       $("impOk").disabled=true;
       try{const res=await api("POST","/api/auditorias/importar",impPend);impPend=null;$("impBox").hidden=true;
         toast(`Importado: ${res.novas} ${res.novas===1?"nova":"novas"}, ${res.atualizadas} ${res.atualizadas===1?"atualizada":"atualizadas"}`);auds=null;loadAuditorias()}

@@ -278,7 +278,7 @@ async function api(request, env, path, method) {
     const lista = Array.isArray(body?.auditorias) ? body.auditorias : null;
     if (!lista || !lista.length || lista.length > 200) return fail("nenhuma auditoria para importar", 400);
     const NUM = ["fisico", "sap", "valorKg", "perda", "proposto", "consumo", "sobras"];
-    const TXT = ["obs", "propostoObs", "sobrasObs"];
+    const TXT = ["obs", "propostoObs", "sobrasObs", "secao"];
     const atuais = new Map((await listDocs(env, "auditorias")).map((r) => [r.id, r.data]));
     const porMes = new Map(); for (const [id, d] of atuais) porMes.set(String(d.data).slice(0, 7), id);
     const mexidas = new Map(); let novas = 0, atualizadas = 0;
