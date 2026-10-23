@@ -390,6 +390,7 @@ body.locked .login{display:grid}
         <div id="srcCat" class="grid2 stack">
           <label class="f" for="tipo">Tipo de aço<select id="tipo"></select></label>
           <label class="f" for="bitola">Bitola<select id="bitola"></select></label>
+          <p class="note" id="secCatInfo" style="grid-column:1/-1;margin:0"></p>
         </div>
 
         <div id="srcLivre" class="col" hidden>
@@ -716,14 +717,25 @@ try{const v=JSON.parse(LS.get("cpm-calc","null"));if(v){
 }}catch{}
 const salvarCalc=()=>LS.set("cpm-calc",JSON.stringify({mode:st.mode,src:st.src,code:st.code,shape:st.shape,mat:st.mat,dims:st.dims,comp:num($("comp").value)}));
 
-const bitolaOpts=gi=>GROUPS[gi][1].map(([c,d,D])=>`<option value="${c}">Ø ${fmt(D,2)} mm · ${curto(d).replace(/ Ø.*?mm/,"")}</option>`).join("");
-$("tipo").innerHTML=GROUPS.map(([g],i)=>`<option value="${i}">${g}</option>`).join("");
+// materiais de cada seção = os da planilha de auditoria com o mesmo nome (Eixos A, B, C); seção sem planilha vê todos
+const SEC_COD={"B":["10014609","10014612","10014613","10014614","10014615","10014616","10014617","10014636","10014637","10014640","10032360","10032376","10155716","10155717","10155718","10155723","10155725","10155726","10166296","10166300","10166302","10166305","10166306","10166311","10166314","10166323","10166324","10432532","16965336","16965337","16966160","17214933","17214934"],"C":["10014630","10032361","10014638","10032358","10014627","10155728","10155734","10166332","11024711","10166327","10155732","10166297","10166304","10166307","12568745","10155729","10155737","10155719","10155720","10155721","10155722","10166298","10155715","10225700","10166309","10014618","10014619","10014620","10014621","10014622"],"A":["17310988","10014623","10014624","10014625","10014645","10393960","10014626","10014628","10323668","10014641","10014642","10032371","10323672","10323673","10323674","10323675","13955484","10166301","10166322","11430248","10155724","10155736","10155730","12144812"]};
+const SEC_DE_COD=new Map(Object.entries(SEC_COD).flatMap(([s,l])=>l.map(c=>[c,s])));
+const secCalc=()=>isAdm()||!me?st.secao:me.secao;
+const naSecCalc=c=>!SEC_COD[secCalc()]||SEC_DE_COD.get(c)===secCalc()||!SEC_DE_COD.has(c);
+const bitolaOpts=gi=>GROUPS[gi][1].filter(([c])=>naSecCalc(c)).map(([c,d,D])=>`<option value="${c}">Ø ${fmt(D,2)} mm · ${curto(d).replace(/ Ø.*?mm/,"")}</option>`).join("");
+function filtrarCatSec(){
+  const gs=GROUPS.map(([g,l],i)=>[g,i,l.filter(([c])=>naSecCalc(c)).length]).filter(x=>x[2]);
+  $("tipo").innerHTML=gs.map(([g,i])=>`<option value="${i}">${g}</option>`).join("");
+  if(!naSecCalc(st.code)||!gs.some(x=>x[1]===st.gi)){const g=gs.find(x=>x[1]===st.gi)||gs[0];st.gi=g[1];st.code=GROUPS[g[1]][1].find(([c])=>naSecCalc(c))[0]}
+  const n=gs.reduce((a,x)=>a+x[2],0), s=secCalc();
+  $("secCatInfo").textContent=SEC_COD[s]?`Mostrando os ${n} materiais da Seção ${s} (Eixos ${s}).`:"";
+}
 $("mat").innerHTML=MATS.map((m,i)=>`<option value="${i}">${i+1} · ${m[0]}</option>`).join("");
 $("shapes").innerHTML=Object.entries(SHAPES).map(([k,s])=>`<button type="button" class="shape" data-s="${k}" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true">${s.icon}</svg>${s.nome}</button>`).join("");
 $("secPick").innerHTML=SECOES.map(s=>`<button type="button" data-sec="${s}" aria-pressed="${s===st.secao}">${s}</button>`).join("");
 
 $("mSec").innerHTML=SECOES.map(s=>`<option value="${s}">Seção ${s}</option>`).join(""); $("mSec").value=st.secao;
-function setSecao(s){st.secao=s;LS.set("cpm-secao",s);setPressed("[data-sec]","sec",s);$("mSec").value=s}
+function setSecao(s){st.secao=s;LS.set("cpm-secao",s);setPressed("[data-sec]","sec",s);$("mSec").value=s;syncUI();renderCat()}
 $("mSec").addEventListener("change",e=>setSecao(e.target.value));
 $("mAdd").addEventListener("click",()=>$("btnAdd").click());
 function setPressed(sel,attr,val){document.querySelectorAll(sel).forEach(b=>b.setAttribute("aria-pressed",b.dataset[attr]===val))}
@@ -731,7 +743,7 @@ function syncUI(){
   setPressed("[data-mode]","mode",st.mode); setPressed("[data-src]","src",st.src); setPressed(".shape","s",st.shape);
   $("srcCat").hidden=st.src!=="cat"; $("srcLivre").hidden=st.src!=="livre";
   $("modePeso").hidden=st.mode!=="peso"; $("modeKg").hidden=st.mode!=="kg";
-  $("tipo").value=st.gi; $("bitola").innerHTML=bitolaOpts(st.gi); $("bitola").value=st.code;
+  filtrarCatSec(); $("tipo").value=st.gi; $("bitola").innerHTML=bitolaOpts(st.gi); $("bitola").value=st.code;
   $("mat").value=st.mat;
   const s=SHAPES[st.shape];
   $("dims").innerHTML=s.dims.map(([k,l])=>`<label class="f" for="d_${k}"><span>${l.replace(/ (\w+)$/," <span class='k'>$1</span>")}</span><span class="inp"><input id="d_${k}" data-dim="${k}" inputmode="decimal" autocomplete="off" value="${String(st.dims[st.shape][k]).replace(".",",")}"><span class="u">mm</span></span></label>`).join("");
@@ -809,7 +821,7 @@ function drawing(sh,v){
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{st.mode=b.dataset.mode;syncUI()}));
 document.querySelectorAll("[data-src]").forEach(b=>b.addEventListener("click",()=>{st.src=b.dataset.src;syncUI()}));
 $("shapes").addEventListener("click",e=>{const b=e.target.closest(".shape");if(!b)return;st.shape=b.dataset.s;st.mat=SHAPES[st.shape].mat;syncUI()});
-$("tipo").addEventListener("change",e=>{st.gi=+e.target.value;st.code=GROUPS[st.gi][1][0][0];syncUI()});
+$("tipo").addEventListener("change",e=>{st.gi=+e.target.value;st.code=(GROUPS[st.gi][1].find(([c])=>naSecCalc(c))||GROUPS[st.gi][1][0])[0];syncUI()});
 $("bitola").addEventListener("change",e=>{st.code=e.target.value;calc()});
 $("mat").addEventListener("change",e=>{st.mat=+e.target.value;calc()});
 $("dims").addEventListener("input",e=>{const k=e.target.dataset.dim;if(k){st.dims[st.shape][k]=num(e.target.value);calc()}});
@@ -829,7 +841,7 @@ $("matTbl").innerHTML=MATS.map((m,i)=>`<tr><td style="width:40px" class="muted">
 function renderCat(){
   const f=$("filtro").value.trim().toLowerCase().replace(",",".");let h="";
   GROUPS.forEach(([g,list])=>{
-    const rows=list.filter(([c,d,D])=>!f||(c+" "+d+" "+g+" "+D).toLowerCase().replace(/,/g,".").includes(f)); if(!rows.length)return;
+    const rows=list.filter(([c,d,D])=>naSecCalc(c)&&(!f||(c+" "+d+" "+g+" "+D).toLowerCase().replace(/,/g,".").includes(f))); if(!rows.length)return;
     h+=`<tr class="grp"><td colspan="4">${g}</td></tr>`+rows.map(([c,d,D])=>`<tr data-code="${c}"><td class="code">${c}</td><td>${curto(d)}</td><td class="n">${fmt(D,2)}</td><td class="n">${fmt(MATS[ACO][1]*1e-9*Math.PI*D*D/4*1000,3)}</td></tr>`).join("");
   });
   $("catTbl").innerHTML=h||'<tr><td colspan="4" class="muted">Nenhuma barra encontrada.</td></tr>';
@@ -989,7 +1001,7 @@ function aplicarModo(){
 }
 /* seções da auditoria: uma por planilha de auditoria */
 const SEC_AUD_NOME={1:"Seção 1 · até 38 mm",2:"Seção 2 · 44–76 mm",3:"Seção 3 · 80–254 mm"};
-const SEC_AUD_COD=new Map([["10014609","10014612","10014613","10014614","10014615","10014616","10014617","10014636","10014637","10014640","10032360","10032376","10155716","10155717","10155718","10155723","10155725","10155726","10166296","10166300","10166302","10166305","10166306","10166311","10166314","10166323","10166324","10432532","16965336","16965337","16966160","17214933","17214934"],["10014630","10032361","10014638","10032358","10014627","10155728","10155734","10166332","11024711","10166327","10155732","10166297","10166304","10166307","12568745","10155729","10155737","10155719","10155720","10155721","10155722","10166298","10155715","10225700","10166309","10014618","10014619","10014620","10014621","10014622"],["17310988","10014623","10014624","10014625","10014645","10393960","10014626","10014628","10323668","10014641","10014642","10032371","10323672","10323673","10323674","10323675","13955484","10166301","10166322","11430248","10155724","10155736","10155730","12144812"]].flatMap((l,k)=>l.map(c=>[c,k+1])));
+const SEC_AUD_COD=new Map([SEC_COD.B,SEC_COD.C,SEC_COD.A].flatMap((l,k)=>l.map(c=>[c,k+1])));
 // material novo, fora das planilhas conhecidas: vai pela bitola
 const secAud=c=>SEC_AUD_COD.get(c)||(ITEMS[c]?(ITEMS[c].D<=38.1?1:ITEMS[c].D<=76.2?2:3):0);
 // seção do material: a gravada na importação (nome da planilha); sem ela, a das 3 primeiras planilhas
@@ -1627,6 +1639,7 @@ function entrar(user){
   else{cenSec="Todas";histSec="Todas"}
   $("cenSec").hidden=!adm; $("histSec").hidden=!adm; drawCenSec(); drawHistSec();
   pendSig=""; lastSig=""; pend=[]; envios=[]; auds=null; histModo="app"; renderPend();
+  syncUI(); renderCat();
   showView("calc"); sync();
 }
 $("loginForm").addEventListener("submit",async ev=>{
