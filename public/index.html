@@ -125,6 +125,7 @@ textarea{width:100%;min-height:46px;border:1.5px solid var(--line);border-radius
 @media (max-width:820px){.calc-out{position:static}}
 .shapes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 @media(max-width:560px){.shapes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){#audSec{display:grid;grid-template-columns:1fr 1fr;overflow:visible}#audSec .chip{text-align:center;font-size:14px;padding-left:6px;padding-right:6px}}
 .shape{border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13.5px;font-weight:600;color:var(--muted);line-height:1.15;text-align:center}
 .shape svg{width:34px;height:34px}
 .shape[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);background:var(--accent-soft)}
@@ -519,6 +520,7 @@ body.locked .login{display:grid}
             <button type="button" class="btn quiet sm" id="audDelAll" style="color:var(--danger)">Excluir todas</button>
             <input type="file" id="audFile" accept=".xlsx,.xlsm,.xls" hidden>
           </div></div>
+        <div class="chips" id="audSec" role="group" aria-label="Seção da auditoria"></div>
         <div class="grid2 stack">
           <label class="f" for="audGrupo">Tipo de aço<select id="audGrupo"></select></label>
           <label class="f" for="audMat">Material<select id="audMat"></select></label>
@@ -985,10 +987,27 @@ function aplicarModo(){
   $("histModo").hidden=!isAdm(); $("histApp").hidden=histModo!=="app"; $("histAud").hidden=histModo!=="aud";
   if(histModo==="aud")loadAuditorias(); else renderHist(true);
 }
-$("audGrupo").innerHTML='<option value="">Todos os tipos</option>'+GROUPS.map(([g])=>`<option>${g}</option>`).join("");
+/* seções da auditoria: uma por planilha de auditoria */
+const SEC_AUD_NOME={1:"Seção 1 · até 38 mm",2:"Seção 2 · 44–76 mm",3:"Seção 3 · 80–254 mm"};
+const SEC_AUD_COD=new Map([["10014609","10014612","10014613","10014614","10014615","10014616","10014617","10014636","10014637","10014640","10032360","10032376","10155716","10155717","10155718","10155723","10155725","10155726","10166296","10166300","10166302","10166305","10166306","10166311","10166314","10166323","10166324","10432532","16965336","16965337","16966160","17214933","17214934"],["10014630","10032361","10014638","10032358","10014627","10155728","10155734","10166332","11024711","10166327","10155732","10166297","10166304","10166307","12568745","10155729","10155737","10155719","10155720","10155721","10155722","10166298","10155715","10225700","10166309","10014618","10014619","10014620","10014621","10014622"],["17310988","10014623","10014624","10014625","10014645","10393960","10014626","10014628","10323668","10014641","10014642","10032371","10323672","10323673","10323674","10323675","13955484","10166301","10166322","11430248","10155724","10155736","10155730","12144812"]].flatMap((l,k)=>l.map(c=>[c,k+1])));
+// material novo, fora das planilhas conhecidas: vai pela bitola
+const secAud=c=>SEC_AUD_COD.get(c)||(ITEMS[c]?(ITEMS[c].D<=38.1?1:ITEMS[c].D<=76.2?2:3):0);
+let audSecSel="Todas";
+const drawAudSec=()=>{
+  const el=$("audSec");
+  el.innerHTML=["Todas",1,2,3].map(s=>`<button type="button" class="chip" data-s="${s}" aria-pressed="${String(s)===String(audSecSel)}">${s==="Todas"?"Todas as seções":SEC_AUD_NOME[s]}</button>`).join("");
+  el.onclick=e=>{const b=e.target.closest("[data-s]");if(!b)return;audSecSel=b.dataset.s;drawAudSec();fillAudGrupo();fillAudMat();renderAud()};
+};
+const naSec=c=>audSecSel==="Todas"||String(secAud(c))===audSecSel;
+function fillAudGrupo(){
+  const cur=$("audGrupo").value, gs=GROUPS.filter(([,l])=>l.some(([c])=>naSec(c))).map(([g])=>g);
+  $("audGrupo").innerHTML='<option value="">Todos os tipos</option>'+gs.map(g=>`<option>${g}</option>`).join("");
+  if(gs.includes(cur))$("audGrupo").value=cur;
+}
+drawAudSec(); fillAudGrupo();
 function fillAudMat(){
   const g=$("audGrupo").value, cur=$("audMat").value;
-  const list=GROUPS.filter(([n])=>!g||n===g).flatMap(([,l])=>l);
+  const list=GROUPS.filter(([n])=>!g||n===g).flatMap(([,l])=>l).filter(([c])=>naSec(c));
   $("audMat").innerHTML='<option value="">Todos os materiais</option>'+list.map(([c,d])=>`<option value="${c}">${c} · ${curto(d)}</option>`).join("");
   if(list.some(([c])=>c===cur))$("audMat").value=cur;
 }
@@ -1023,7 +1042,7 @@ async function loadAuditorias(){
 const anom=(a,i)=>audAnom.has(a.id+"|"+i.codigo);
 function itensFiltrados(a){
   const g=$("audGrupo").value, m=$("audMat").value;
-  return a.itens.filter(i=>(!g||grupoCod(i.codigo)===g)&&(!m||i.codigo===m));
+  return a.itens.filter(i=>naSec(i.codigo)&&(!g||grupoCod(i.codigo)===g)&&(!m||i.codigo===m));
 }
 function resumoAud(a,prev){
   const its=itensFiltrados(a), temCons=its.some(i=>"consumo" in i);
@@ -1044,14 +1063,15 @@ function renderAud(){
   if(!auds||histModo!=="aud")return;
   $("audDel").hidden=!auds.length; $("audDelAll").hidden=!auds.length;
   const n=+$("audPer").value, lim=n?new Date(new Date().getFullYear(),new Date().getMonth()-n,new Date().getDate()):null;
-  const todas=auds.map((a,k)=>resumoAud(a,auds[k-1]));
+  const base=auds.filter(a=>itensFiltrados(a).length);
+  const todas=base.map((a,k)=>resumoAud(a,base[k-1]));
   // diferença: consumo menos o da auditoria anterior que tinha consumo
   let ant=null; todas.forEach(r=>{r.dif=r.consumo!=null&&ant!=null?r.consumo-ant:null;r.difPct=r.dif!=null&&ant?r.dif/ant*100:null;if(r.consumo!=null)ant=r.consumo});
   audLinhas=todas.filter(r=>!lim||dataBR(r.a.data)>=lim);
   const nAnom=audLinhas.filter(r=>r.anom).length;
   $("audWarn").hidden=!nAnom;
   if(nAnom){
-    const ex=[...audAnom].map(k=>k.split("|")).filter(([id])=>audLinhas.some(r=>r.a.id===id)).map(([id,c])=>{const a=auds.find(x=>x.id===id),i=a.itens.find(x=>x.codigo===c);return`${descCod(c)} em ${fmtData(a.data)} (${fmt(i.consumo,0)} kg)`});
+    const ex=[...audAnom].map(k=>k.split("|")).filter(([id,c])=>audLinhas.some(r=>r.a.id===id)&&itensFiltrados(auds.find(x=>x.id===id)).some(i=>i.codigo===c)).map(([id,c])=>{const a=auds.find(x=>x.id===id),i=a.itens.find(x=>x.codigo===c);return`${descCod(c)} em ${fmtData(a.data)} (${fmt(i.consumo,0)} kg)`});
     $("audWarn").innerHTML=`<p><b class="flag">⚠ Valores fora do padrão:</b> ${esc(ex.join("; "))}. São mais de 20 vezes o consumo normal do material; provável erro de digitação na planilha.</p><label><input type="checkbox" id="audIgn"${audIgnorar?" checked":""}> Desconsiderar nos totais</label>`;
     $("audIgn").onchange=e=>{audIgnorar=e.target.checked;renderAud()};
   }
@@ -1127,7 +1147,7 @@ function renderAudDet(){
 }
 $("audXls").addEventListener("click",async()=>{
   try{await loadXLSX()}catch{toast("Não foi possível carregar o gerador de Excel.");return}
-  const filtro=[$("audGrupo").value||"Todos os tipos",$("audMat").value?descCod($("audMat").value):"Todos os materiais"].join(" · ");
+  const filtro=[audSecSel==="Todas"?"Todas as seções":SEC_AUD_NOME[audSecSel],$("audGrupo").value||"Todos os tipos",$("audMat").value?descCod($("audMat").value):"Todos os materiais"].join(" · ");
   const s1=[["CPM · Auditorias de estoque"],["Filtro",filtro],["Gerado em",new Date().toLocaleString("pt-BR")],[],
     ["Auditoria","Período do consumo","Consumo (kg)","Dias","kg/dia","Perda %","Perda estimada (kg)","Variação do consumo (kg)","Estoque físico (kg)","SAP (kg)","Diferença físico − SAP (kg)","R$ da diferença","Valor do estoque (R$)","Fora do padrão"]];
   audLinhas.forEach(r=>s1.push([serialXL(r.a.data),r.a.periodoConsumo||"",r.consumo??"",r.dias??"",r.kgDia!=null?+r.kgDia.toFixed(1):"",r.perdaPct!=null?+(r.perdaPct/100).toFixed(4):"",r.perdaKg!=null?+r.perdaKg.toFixed(1):"",r.dif!=null?+r.dif.toFixed(1):"",+r.fisico.toFixed(1),r.sap!=null?+r.sap.toFixed(1):"",r.difSap!=null?+r.difSap.toFixed(1):"",r.difSapR!=null?+r.difSapR.toFixed(2):"",+r.valor.toFixed(2),r.anom?"sim":""]));
