@@ -451,8 +451,8 @@ body.locked .login{display:grid}
     <div id="pendentes"></div>
     <label class="f" for="obs">Observação do envio<textarea id="obs" rows="1" placeholder="Ex.: entrega até sexta"></textarea></label>
     <div class="row stack cen-acoes">
-      <button type="button" class="btn" id="btnEnviar">Enviar<span class="full"> e gerar Excel</span></button>
-      <button type="button" class="btn quiet" id="btnCopiar">Copiar<span class="full"> resumo</span></button>
+      <button type="button" class="btn" id="btnEnviar">Enviar</button>
+      <button type="button" class="btn quiet" id="btnCopiar"><span>Copiar<span class="full"> resumo</span></span></button>
     </div>
     <div class="confirm" id="confirmBox" hidden>
       <p id="confirmMsg"></p>
@@ -896,9 +896,9 @@ function renderPend(){
   const n=agrupar(pend).length; $("count").textContent=n||""; $("count").dataset.n=n;
   const gs=agrupar(pendFiltro());
   $("pendentes").innerHTML=gs.length?listaHTML(gs,true)
-    :`<p class="empty">${cenSec==="Todas"?"Nenhum item aguardando envio.":"Nenhum item da Seção "+cenSec+"."}<br>Use a calculadora e toque em “Adicionar à central”.</p><p style="text-align:center;margin:0 0 8px"><button type="button" class="btn quiet sm" data-go="calc">Ir para Calcular</button></p>`;
+    :`<p class="empty">${cenSec==="Todas"?"Nenhum item aguardando envio.":"Nenhum item da Seção "+cenSec+"."}<br>Use a calculadora e toque em “Adicionar à central”.<br><button type="button" class="btn quiet sm" data-go="calc" style="margin-top:10px">Ir para Calcular</button></p>`;
   $("btnCopiar").disabled=!gs.length;
-  $("btnEnviar").innerHTML=(cenSec==="Todas"?"Enviar":`Enviar Seção ${cenSec}`)+'<span class="full"> e gerar Excel</span>';
+  $("btnEnviar").textContent=cenSec==="Todas"?"Enviar":`Enviar Seção ${cenSec}`; $("btnEnviar").disabled=!gs.length;
 }
 let qtdFila=Promise.resolve();
 $("pendentes").addEventListener("click",e=>{
@@ -931,8 +931,9 @@ $("btnCopiar").addEventListener("click",async()=>{
 $("btnEnviar").addEventListener("click",()=>{
   const gs=agrupar(pendFiltro()),t=totaisG(gs),alvo=cenSec==="Todas"?"todas as seções":"a Seção "+cenSec;
   $("confirmMsg").textContent=gs.length
-    ?`Enviar ${gs.length} ${gs.length===1?"material":"materiais"} de ${alvo} (${t.qtd} peças, ${fmt(t.kg,2)} kg)? O Excel é gerado e os itens vão para o histórico.`
-    :`Não há itens de ${alvo}. Gerar o Excel com o catálogo completo e quantidades em branco?`;
+    ?`Enviar ${gs.length} ${gs.length===1?"material":"materiais"} de ${alvo} (${t.qtd} peças, ${fmt(t.kg,2)} kg)? Os itens vão para o histórico, onde dá para baixar o Excel depois.`
+    :"";
+  if(!gs.length)return;
   $("confirmBox").hidden=false; $("confirmBox").scrollIntoView({block:"nearest",behavior:"smooth"});
 });
 $("btnCancelar").addEventListener("click",()=>$("confirmBox").hidden=true);
@@ -947,8 +948,7 @@ $("btnConfirmar").addEventListener("click",async()=>{
     let res;
     try{res=await api("POST","/api/enviar",{envio,ids:docs.map(r=>r.id)})}
     catch(e){if(e.status!==409)throw e;envio.numero=numero+"-"+Math.random().toString(36).slice(2,4).toUpperCase();res=await api("POST","/api/enviar",{envio,ids:docs.map(r=>r.id)})}
-    $("obs").value=""; $("confirmBox").hidden=true; toast(`Envio ${envio.numero} registrado`);
-    exportar(res.envio||envio);
+    $("obs").value=""; $("confirmBox").hidden=true; toast(`Envio ${envio.numero} registrado · o Excel fica no Histórico`);
     await loadColeta(); loadEnvios().catch(()=>{});
   }catch(e){toast(e.status===409?"Esse envio já foi registrado.":"O envio falhou. Nada foi alterado; tente de novo.")}
   finally{$("btnConfirmar").disabled=false}
